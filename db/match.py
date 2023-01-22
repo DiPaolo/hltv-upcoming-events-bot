@@ -1,4 +1,5 @@
 import datetime
+import logging
 import sys
 from typing import Optional, Dict
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import relationship, Session
 import domain.match
 from db.common import Base, get_engine
 from db.match_stars import MatchStars
-from db.team import Team
+from db.team import Team, get_team_by_name, add_team, get_team
 
 
 class Match(Base):
@@ -19,22 +20,58 @@ class Match(Base):
     # team1 = relationship("Team", back_populates="children")
     team2_id = Column(Integer, ForeignKey("team.id"))
     # team2 = relationship("Team", back_populates="children")
-    stars = Column(Enum(MatchStars), default=MatchStars.ZERO)
-    url = Column(String)
+    # stars = Column(Enum(MatchStars))
+    url = Column(String, nullable=False, unique=True)
 
     def __repr__(self):
-        return f"Match(id={self.id!r}"
+        return f"Match(id={self.id!r})"
 
     # def to_domain_object(self):
     #     return domain.match.Match()
 
 
-def add_match(team1: Team, team2: Team, unix_time_sec: int, stars: MatchStars, url: str, session: Session = None):
+def add_match_from_domain_object(match: domain.match.Match, session: Session = None) -> Optional[Match]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:
         return None
 
-    match = Match(unix_time_utc_sec=unix_time_sec, team1_id=team1.id, team2_id=team2.id, stars=stars, url=url)
+    team1 = Team.from_domain_object(match.team1)
+    if team1:
+        team1_id = team1.id
+    else:
+        team1_id = add_team(match.team1.name, match.team1.url)
+
+    team2 = Team.from_domain_object(match.team2)
+    if team2:
+        team2_id = team2.id
+    else:
+        team2_id = add_team(match.team2.name, match.team2.url)
+
+    return add_match(team1_id, team2_id,
+                     int(datetime.datetime.timestamp(match.time_utc)), match.url)
+
+
+def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, url: str, session: Session = None) -> \
+Optional[Integer]:
+    cur_session = session if session else Session(get_engine())
+    if cur_session is None:
+        return None
+
+    # if team1 is None or team2 is None:
+    #     logging.error(f'failed to add match because team1 (={team1}) or team2 (={team2}) is None')
+    #     return None
+
+    team1 = get_team(team1_id)
+    if team1 is None:
+        logging.error(f'failed to add match because team1 (id={team1_id}) is not found')
+        return None
+
+    team2 = get_team(team2_id)
+    if team2 is None:
+        logging.error(f'failed to add match because team2 (id={team2_id}) is not found')
+        return None
+
+    match = Match(unix_time_utc_sec=unix_time_sec, team1_id=team1_id, team2_id=team2_id, url=url)
     cur_session.add(match)
 
     # created at the beginning of the function
@@ -42,8 +79,13 @@ def add_match(team1: Team, team2: Team, unix_time_sec: int, stars: MatchStars, u
         try:
             cur_session.commit()
         except Exception as e:
-            print(f"ERROR failed to add match between '{team1.name}' and '{team2.name}' at "
+            print(f"ERROR failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
                   f"{datetime.datetime.fromtimestamp(unix_time_sec)}: {e}")
+
+    logging.info(f"Match added: team1 (id={team1.id}, name={team1.name}) vs team2 (id={team2.id}, name={team2.name}) "
+                 f"at {str(datetime.datetime.fromtimestamp(match.unix_time_utc_sec))}")
+
+    return match.id
 
 
 def get_match(match_id: Integer, session: Session = None) -> Optional[Match]:

@@ -9,6 +9,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 # включаем логгирование
 import config
 import db.common
+import domain.match
 from hltv_parser import get_upcoming_matches
 
 logging.basicConfig(
@@ -103,14 +104,22 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    db.common.init_db(config.DB_FILENAME)
-
-    # test
     import db.team
     import db.match
     import db.match_stars
-    team1 = db.team.add_team("NAVI", "asd")
-    team2 = db.team.add_team("BIG", "zxc")
-    db.match.add_match(team1, team2, 1674318600, db.match_stars.MatchStars.TWO, 'asdasdasd')
+    import domain.team
+
+    db.common.init_db(config.DB_FILENAME)
+
+    matches = get_upcoming_matches()
+    for match in matches:
+        db.match.add_match_from_domain_object(match)
+
+    # # test
+    # team1 = db.team.add_team("MASONIC", "https://www.hltv.org/team/10867/masonic")
+    # team2 = db.team.add_team("Invictus International", "https://www.hltv.org/team/10817/invictus-international")
+    # new_match = domain.match.Match(domain.team.Team('Navi'), domain.team.Team('BIG'), datetime.datetime.fromtimestamp(1674318600), 'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
+    # db.match.add_match_from_domain_object(new_match)
+    # db.match.add_match(team1.id, team2.id, 1674318600, 'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
 
     # main()

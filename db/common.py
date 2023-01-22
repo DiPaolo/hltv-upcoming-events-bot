@@ -23,11 +23,11 @@ def init_db(name: str):
     os.makedirs(db_folder, exist_ok=True)
 
     logging.basicConfig()
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
-    logging.getLogger("sqlalchemy.pool").setLevel(logging.INFO)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 
     engine = create_engine(f"sqlite:///{db_abs_filename}"
-                           , echo=True,
+                           # , echo=True,
                            # , future=True
                            )
 

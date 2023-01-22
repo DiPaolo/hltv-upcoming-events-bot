@@ -114,7 +114,7 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
 
         out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
                          datetime.datetime.fromtimestamp(time_utc),
-                         MatchStars(stars_count), match_url))
+                         match_url))
 
     # was created at the beginning of the function, so clean-up for ourselves
     # if driver is None:

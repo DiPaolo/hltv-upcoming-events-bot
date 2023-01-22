@@ -1,9 +1,11 @@
+import logging
 import sys
 from typing import Optional, Dict
 
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship, Session
 
+import domain.team
 from db.common import Base, get_engine
 
 
@@ -19,15 +21,23 @@ class Team(Base):
     # def to_domain_object(self):
     #     return domain.team.Team()
 
+    @staticmethod
+    def from_domain_object(team: domain.team.Team, session: Session = None):
+        return get_team_by_name(team.name, session)
 
-def add_team(name: str, url: str, session: Session = None) -> Optional[Team]:
+
+def add_team_from_domain_object(team: domain.team.Team, session: Session = None) -> Optional[Team]:
+    return add_team(team.name, team.url, session)
+
+
+def add_team(name: str, url: str, session: Session = None) -> Optional[Integer]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:
         return None
 
-    team = get_team_by_name(name)
+    team = get_team_by_name(name, cur_session)
     if team:
-        return team
+        return team.id
 
     team = Team(name=name, url=url)
     cur_session.add(team)
@@ -36,10 +46,13 @@ def add_team(name: str, url: str, session: Session = None) -> Optional[Team]:
     if not session:
         try:
             cur_session.commit()
+            # cur_session.refresh(team)
         except Exception as e:
             print(f"ERROR failed to add team '{name}': {e}")
 
-    return team
+    logging.info(f"Team added (id={team.id}, name={team.name})")
+
+    return team.id
 
 
 def get_team(team_id: Integer, session: Session = None) -> Optional[Team]:
@@ -50,8 +63,8 @@ def get_team(team_id: Integer, session: Session = None) -> Optional[Team]:
     ret = cur_session.get(Team, team_id)
 
     # created at the beginning of the function
-    if not session:
-        cur_session.commit()
+    # if not session:
+    #     cur_session.commit()
 
     return ret
 
@@ -61,7 +74,11 @@ def get_team_by_name(name: str, session: Session = None) -> Optional[Team]:
     if cur_session is None:
         return None
 
-    team = cur_session.query(Team).filter(Team.name == name).first()
+    try:
+        team = cur_session.query(Team).filter(Team.name == name).first()
+    except BaseException as e:
+        logging.error(f"failed to get team (name={name}) from DB: {e}")
+        return None
 
     # created at the beginning of the function
     # if not session:

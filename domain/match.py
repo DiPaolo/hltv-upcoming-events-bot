@@ -10,5 +10,5 @@ class Match(object):
     team1: Team
     team2: Team
     time_utc: datetime.datetime
-    stars: MatchStars
+    # stars: MatchStars
     url: str

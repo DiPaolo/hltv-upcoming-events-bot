@@ -1,8 +1,8 @@
 import enum
 
 
-class MatchStars(enum.Enum):
-    ZERO = 0
+class MatchStars(enum.IntEnum):
+    # ZERO = 0
     ONE = 1
     TWO = 2
     THREE = 3
