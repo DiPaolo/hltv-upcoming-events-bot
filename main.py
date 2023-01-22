@@ -1,11 +1,16 @@
 #!/usr/bin/env python
-
+import datetime
 import logging
+import os
 
-from telegram import Update, ForceReply
+from telegram import Update, ForceReply, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # включаем логгирование
+import config
+import db.common
+from hltv_parser import get_upcoming_matches
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
@@ -30,10 +35,25 @@ def start(engine: Update, context: CallbackContext) -> None:
     )
 
 
+def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
+    matches = get_upcoming_matches()
+    match_str_list = list()
+    for match in matches:
+        match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
+                    f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name}" \
+                    f" <a href=\"{match.url}\">link</a>"
+        match_str_list.append(match_str)
+
+    engine.message.reply_text('Нифига' if len(matches) == 0 else '\n\n'.join(match_str_list), parse_mode=ParseMode.HTML)
+
+
 # другой обработчик - для команды /help. Когда пользователь вводит /help, вызывается этот код
 def help_command(engine: Update, context: CallbackContext) -> None:
     # отправляем какой-то стандартный жестко заданный текст
-    engine.message.reply_text('Помощь!')
+    # engine.message.reply_text('Помощь!')
+    engine.message.reply_text("<b>bold</b>, <strong>bold</strong>"
+                              "<i>italic</i>, <em>italic</em>"
+                              "<u>underline</u>, <ins>underline</ins>", parse_mode=ParseMode.HTML)
 
 
 def echo(engine: Update, context: CallbackContext) -> None:
@@ -51,7 +71,7 @@ def main() -> None:
     #
     # я назвал его engine (движок), чтобы было понятнее. В самой либе (библиотеке, фреймворке)
     # он называется Updater, как видно, что немного запутывает
-    engine = Updater("вставить токен тут")
+    engine = Updater(os.getenv('DP_TG_BOT_TOKEN'))
 
     # получаем объект "передатчика" или обработчика сообщений от нашего движка
     dispatcher = engine.dispatcher
@@ -63,6 +83,7 @@ def main() -> None:
     # вызовется позже в ответ на какое-то событие; в нашем случае они будут вызываться тогда, когда
     # пользователь будет выбирать соответствующие команды
     dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("matches", get_upcoming_matches_command))
     dispatcher.add_handler(CommandHandler("help", help_command))
 
     # говорим обработчику сообений, чтобы он вызывал функцию echo каждый раз,
@@ -82,4 +103,14 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    db.common.init_db(config.DB_FILENAME)
+
+    # test
+    import db.team
+    import db.match
+    import db.match_stars
+    team1 = db.team.add_team("NAVI", "asd")
+    team2 = db.team.add_team("BIG", "zxc")
+    db.match.add_match(team1, team2, 1674318600, db.match_stars.MatchStars.TWO, 'asdasdasd')
+
+    # main()
