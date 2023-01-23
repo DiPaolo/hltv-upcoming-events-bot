@@ -11,6 +11,7 @@ from db.common import Base
 from db.team import *
 from db.match import *
 from db.match_stars import *
+from db.match_state import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

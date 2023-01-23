@@ -10,6 +10,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import config
 import db.common
 import domain.match
+from domain.match_state import get_all_match_state_names
 from hltv_parser import get_upcoming_matches
 
 logging.basicConfig(
@@ -107,10 +108,15 @@ if __name__ == '__main__':
     import db.team
     import db.match
     import db.match_stars
+    import db.match_state
     import domain.team
     import domain.match_stars
 
     db.common.init_db(config.DB_FILENAME)
+
+    for match_state in get_all_match_state_names():
+        db.match_state.add_match_state(match_state)
+
 
     # matches = get_upcoming_matches()
     # for match in matches:
@@ -122,6 +128,7 @@ if __name__ == '__main__':
     new_match = domain.match.Match(domain.team.Team('Navi'), domain.team.Team('BIG'),
                                    datetime.datetime.fromtimestamp(1674318600),
                                    domain.match_stars.MatchStars.THREE,
+                                   domain.match_state.MatchState.FINISHED,
                                    'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
     db.match.add_match_from_domain_object(new_match)
     # db.match.add_match(team1_id, team2_id,
