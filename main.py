@@ -10,6 +10,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import config
 import db.common
 import domain.match
+from domain.match_stars import MatchStars
 from domain.match_state import get_all_match_state_names
 from hltv_parser import get_upcoming_matches
 
@@ -41,10 +42,11 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
     matches = get_upcoming_matches()
     match_str_list = list()
     for match in matches:
-        match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
-                    f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name}" \
-                    f" <a href=\"{match.url}\">link</a>"
-        match_str_list.append(match_str)
+        if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE]:
+            match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
+                        f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name}" \
+                        f" <a href=\"{match.url}\">link</a>"
+            match_str_list.append(match_str)
 
     engine.message.reply_text('Нифига' if len(matches) == 0 else '\n\n'.join(match_str_list), parse_mode=ParseMode.HTML)
 
