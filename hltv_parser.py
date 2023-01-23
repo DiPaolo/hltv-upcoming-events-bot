@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 import config
+import domain.match_state
 from domain.match import Match
 from domain.team import Team
 from domain.match_stars import MatchStars
@@ -69,7 +70,7 @@ def create_driver() -> WebDriver:
     options = webdriver.ChromeOptions()
     options.page_load_strategy = 'eager'
     # options.add_argument(f'--proxy-server={proxy}')
-    # options.headless = True
+    options.headless = True
 
     # print(f"INFO creating webdriver with proxy '{get_random_proxy()}'...")
 
@@ -114,7 +115,8 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
 
         out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
                          datetime.datetime.fromtimestamp(time_utc),
-                         match_url))
+                         domain.match_stars.MatchStars(stars_count),
+                         domain.match_state.MatchState.PLANNED, match_url))
 
     # was created at the beginning of the function, so clean-up for ourselves
     # if driver is None:
