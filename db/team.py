@@ -46,11 +46,9 @@ def add_team(name: str, url: str, session: Session = None) -> Optional[Integer]:
     if not session:
         try:
             cur_session.commit()
-            # cur_session.refresh(team)
+            logging.info(f"Team added (id={team.id}, name={team.name})")
         except Exception as e:
             print(f"ERROR failed to add team '{name}': {e}")
-
-    logging.info(f"Team added (id={team.id}, name={team.name})")
 
     return team.id
 
@@ -60,13 +58,7 @@ def get_team(team_id: Integer, session: Session = None) -> Optional[Team]:
     if cur_session is None:
         return None
 
-    ret = cur_session.get(Team, team_id)
-
-    # created at the beginning of the function
-    # if not session:
-    #     cur_session.commit()
-
-    return ret
+    return cur_session.get(Team, team_id)
 
 
 def get_team_by_name(name: str, session: Session = None) -> Optional[Team]:
@@ -79,10 +71,6 @@ def get_team_by_name(name: str, session: Session = None) -> Optional[Team]:
     except BaseException as e:
         logging.error(f"failed to get team (name={name}) from DB: {e}")
         return None
-
-    # created at the beginning of the function
-    # if not session:
-    #     cur_session.commit()
 
     return team
 

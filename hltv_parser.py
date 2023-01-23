@@ -121,6 +121,3 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
     #     close_driver(cur_driver)
 
     return out
-
-    # return [Match(Team('Navi'), Team('NiP'), datetime.datetime.utcnow(), Stars.ONE),
-    #         Match(Team('Navi'), Team('NiP'), datetime.datetime.utcnow(), Stars.ONE)]

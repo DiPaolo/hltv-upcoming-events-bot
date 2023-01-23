@@ -108,18 +108,25 @@ if __name__ == '__main__':
     import db.match
     import db.match_stars
     import domain.team
+    import domain.match_stars
 
     db.common.init_db(config.DB_FILENAME)
 
-    matches = get_upcoming_matches()
-    for match in matches:
-        db.match.add_match_from_domain_object(match)
+    # matches = get_upcoming_matches()
+    # for match in matches:
+    #     db.match.add_match_from_domain_object(match)
 
     # # test
-    # team1 = db.team.add_team("MASONIC", "https://www.hltv.org/team/10867/masonic")
-    # team2 = db.team.add_team("Invictus International", "https://www.hltv.org/team/10817/invictus-international")
-    # new_match = domain.match.Match(domain.team.Team('Navi'), domain.team.Team('BIG'), datetime.datetime.fromtimestamp(1674318600), 'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
-    # db.match.add_match_from_domain_object(new_match)
-    # db.match.add_match(team1.id, team2.id, 1674318600, 'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
+    team1_id = db.team.add_team("MASONIC", "https://www.hltv.org/team/10867/masonic")
+    team2_id = db.team.add_team("Invictus International", "https://www.hltv.org/team/10817/invictus-international")
+    new_match = domain.match.Match(domain.team.Team('Navi'), domain.team.Team('BIG'),
+                                   datetime.datetime.fromtimestamp(1674318600),
+                                   domain.match_stars.MatchStars.THREE,
+                                   'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
+    db.match.add_match_from_domain_object(new_match)
+    # db.match.add_match(team1_id, team2_id,
+    #                    1674318600,
+    #                    db.match_stars.MatchStars.FOUR,
+    #                    'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
 
     # main()
