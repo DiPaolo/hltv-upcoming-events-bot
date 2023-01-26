@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import List
 
 from selenium import webdriver
@@ -96,8 +97,12 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
 
     # parse each match
     for match_elem in match_elem_list:
-        team1_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][1]/span")
-        team2_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][2]/span")
+        try:
+            team1_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][1]/span")
+            team2_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][2]/span")
+        except NoSuchElementException:
+            logging.error(f"failed to parse team1 or team2 row element: no cush element")
+            continue
 
         div_elem = match_elem.find_element(By.XPATH, ".//div")
         stars_count = int(div_elem.get_attribute('stars'))
