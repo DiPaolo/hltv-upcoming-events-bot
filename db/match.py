@@ -10,6 +10,7 @@ import domain.match
 from db.common import Base, get_engine
 from db.match_stars import MatchStars
 from db.team import Team, add_team, get_team
+from db.tournament import get_tournament
 from domain.match_state import get_match_state_name
 
 
@@ -21,6 +22,7 @@ class Match(Base):
     team2_id = Column(Integer, ForeignKey("team.id"))
     stars = Column(Enum(MatchStars))
     state_id = Column(Integer, ForeignKey("match_state.id"))
+    tournament_id = Column(Integer, ForeignKey('tournament.id'))
     url = Column(String, nullable=False, unique=True)
 
     def __repr__(self):
@@ -45,12 +47,23 @@ def add_match_from_domain_object(match: domain.match.Match, session: Session = N
     state = db.match_state.get_match_state_by_name(state_name)
     state_id = state.id if state else db.match_state.add_match_state(state_name)
 
+    tournament = db.tournament.get_tournament_by_name(match.tournament.name)
+    if tournament is None:
+        tournament = db.tournament.add_tournament_from_domain_object(match.tournament)
+        if tournament is None:
+            tournament = db.tournament.get_unknown_tournament()
+            if tournament is None:
+                logging.error(
+                    f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
+                return None
+
     return add_match(team1_id, team2_id,
                      int(datetime.datetime.timestamp(match.time_utc)), MatchStars.from_domain_object(match.stars),
-                     state_id, match.url)
+                     tournament.id, state_id, match.url)
 
 
-def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_stars: MatchStars, state_id: Integer, url: str,
+def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_stars: MatchStars, tournament_id: Integer,
+              state_id: Integer, url: str,
               session: Session = None) -> Optional[Integer]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:

@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import List
+import re
+from typing import List, Optional
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -13,6 +14,7 @@ import config
 import domain.match_state
 from domain.match import Match
 from domain.team import Team
+from domain.tournament import Tournament
 from domain.match_stars import MatchStars
 
 # delays in sec with weight
@@ -71,7 +73,7 @@ def create_driver() -> WebDriver:
     options = webdriver.ChromeOptions()
     options.page_load_strategy = 'eager'
     # options.add_argument(f'--proxy-server={proxy}')
-    options.headless = True
+    # options.headless = True
 
     # print(f"INFO creating webdriver with proxy '{get_random_proxy()}'...")
 
@@ -85,15 +87,57 @@ def close_driver(driver):
     driver.close()
 
 
+def _parse_match_page_and_get_tournament_url(url: str, driver: WebDriver = None) -> str:
+    cur_driver = driver if driver else create_driver()
+
+    cur_driver.get(url)
+
+    try:
+        tournament_name_elem = cur_driver.find_element(By.XPATH,
+                                                       "//div[@class='timeAndEvent']/div[contains(@class, 'event')]/a")
+        tournament_url = tournament_name_elem.get_attribute('href')
+    except NoSuchElementException:
+        logging.error(f"failed to parse match page for getting tournament name: no such element (tournament name)")
+        return ''
+
+    if driver is None:
+        close_driver(cur_driver)
+
+    return tournament_url
+
+
+def _parse_tournament_page(url: str, driver: WebDriver = None) -> Optional[Tournament]:
+    cur_driver = driver if driver else create_driver()
+
+    cur_driver.get(url)
+
+    try:
+        name_elem = cur_driver.find_element(By.XPATH, "//h1[@class='event-hub-title']")
+        name = name_elem.text
+    except NoSuchElementException:
+        logging.error(f"failed to parse tournament page: no such element (name)")
+        return None
+
+    if driver is None:
+        close_driver(cur_driver)
+
+    hltv_id = re.search(r'hltv.org\/events\/(\d+)\/', url)
+    if not hltv_id or len(hltv_id.groups()) != 1:
+        logging.error(f"failed to parse tournament page: failed to parse URL for getting HLTV ID")
+        return None
+
+    return Tournament(name, url, int(hltv_id.groups()[0]))
+
+
 def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
-    # cur_driver = driver if driver else create_driver()
-    cur_driver = create_driver()
+    cur_driver = driver if driver else create_driver()
 
     out = list()
 
     cur_driver.get(config.BASE_URL)
 
-    match_elem_list = cur_driver.find_elements(By.XPATH, "//h1[contains(@class, 'todaysMatches')]/following-sibling::div/a")
+    match_elem_list = cur_driver.find_elements(By.XPATH,
+                                               "//h1[contains(@class, 'todaysMatches')]/following-sibling::div/a")
 
     # parse each match
     for match_elem in match_elem_list:
@@ -101,7 +145,7 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
             team1_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][1]/span")
             team2_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][2]/span")
         except NoSuchElementException:
-            logging.error(f"failed to parse team1 or team2 row element: no cush element")
+            logging.error(f"failed to parse team1 or team2 row element: no such element")
             continue
 
         div_elem = match_elem.find_element(By.XPATH, ".//div")
@@ -118,13 +162,26 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
 
         match_url = match_elem.get_attribute('href')
 
+        # tournaments will be parsed later as ling as we need to stay at the current page to
+        # iterate over all upcoming matches
+
         out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
                          datetime.datetime.fromtimestamp(time_utc),
                          domain.match_stars.MatchStars(stars_count),
-                         domain.match_state.MatchState.PLANNED, match_url))
+                         Tournament(), domain.match_state.MatchState.PLANNED, match_url))
+
+    # filling tournaments
+    for match in out:
+        try:
+            tournament_url = _parse_match_page_and_get_tournament_url(match.url, cur_driver)
+            match.tournament = _parse_tournament_page(tournament_url, cur_driver)
+        except Exception as ex:
+            logging.error(ex)
+            out.remove(match)
+            continue
 
     # was created at the beginning of the function, so clean-up for ourselves
-    # if driver is None:
-    #     close_driver(cur_driver)
+    if driver is None:
+        close_driver(cur_driver)
 
     return out
