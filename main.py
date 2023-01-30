@@ -9,6 +9,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import config
 from domain.match_stars import MatchStars
 from domain.match_state import get_all_match_state_names
+from domain.translation import Translation
 from hltv_parser import get_upcoming_matches
 
 logging.basicConfig(
@@ -39,11 +40,17 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
     matches = get_upcoming_matches()
     match_str_list = list()
     for match in matches:
-        if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE]:
+        russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
+
+        if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE] and \
+                len(russian_translations) > 0:
+            if len(russian_translations) > 1:
+                translations_str = ' '.join([f"<a href='{tr.url}'>🇷🇺 {tr.streamer_name}</a>" for tr in russian_translations])
+            else:
+                translations_str = f"<a href='{russian_translations[0].url}'>🇷🇺</a>"
             match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
                         f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name} " \
-                        f"({match.tournament.name}) " \
-                        f"<a href=\"{match.url}\">link</a>"
+                        f"({match.tournament.name}) {translations_str}"
             match_str_list.append(match_str)
 
     engine.message.reply_text('Нифига' if len(matches) == 0 else '\n\n'.join(match_str_list), parse_mode=ParseMode.HTML)

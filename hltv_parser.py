@@ -12,12 +12,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 import config
 import domain.match_state
+from domain.language import Language
 from domain.match import Match
 from domain.team import Team
 from domain.tournament import Tournament
 from domain.match_stars import MatchStars
+from domain.match_state import MatchState
 
 # delays in sec with weight
+from domain.translation import Translation
+
 DELAYS = {
     1: 13,
     2: 19,
@@ -73,7 +77,7 @@ def create_driver() -> WebDriver:
     options = webdriver.ChromeOptions()
     options.page_load_strategy = 'eager'
     # options.add_argument(f'--proxy-server={proxy}')
-    # options.headless = True
+    options.headless = True
 
     # print(f"INFO creating webdriver with proxy '{get_random_proxy()}'...")
 
@@ -87,7 +91,7 @@ def close_driver(driver):
     driver.close()
 
 
-def _parse_match_page_and_get_tournament_url(url: str, driver: WebDriver = None) -> str:
+def _parse_match_page_and_get_tournament_url(url: str, driver: WebDriver = None) -> Optional[Match]:
     cur_driver = driver if driver else create_driver()
 
     cur_driver.get(url)
@@ -96,14 +100,52 @@ def _parse_match_page_and_get_tournament_url(url: str, driver: WebDriver = None)
         tournament_name_elem = cur_driver.find_element(By.XPATH,
                                                        "//div[@class='timeAndEvent']/div[contains(@class, 'event')]/a")
         tournament_url = tournament_name_elem.get_attribute('href')
+    except NoSuchElementException as ex:
+        logging.error(f"failed to parse match page (url={url}) for getting tournament name: "
+                      f"no such element (tournament name): {ex.msg}")
+        return None
+
+    #
+    # get translations
+    #
+
+    translations = list()
+
+    # some elements can be hidden, but that's not a problem as long as
+    # they contain 'stream-box' proerty anyway
+    try:
+        streams_elems = cur_driver.find_elements(
+            By.XPATH, "//div[@class='streams']/div[contains(@class, 'stream-box') and not(contains(@class, 'hltv-live'))]")
+
+        for stream_elem in streams_elems:
+            try:
+                stream_name_elem = stream_elem.find_element(By.XPATH, "./div[contains(@class, 'stream-box-embed')]")
+                streamer_name = stream_name_elem.text
+
+                country_flag_image_elem = stream_name_elem.find_element(By.XPATH, "./img")
+                country = country_flag_image_elem.get_attribute('alt')
+            except NoSuchElementException as ex:
+                logging.error(f"failed to parse match page (url={url}) for getting translations: {ex.msg}")
+                continue
+
+            try:
+                external_link_name_elem = stream_elem.find_element(By.XPATH,
+                                                                   ".//div[contains(@class, 'external-stream')]/a")
+                url = external_link_name_elem.get_attribute('href')
+            except:
+                # it's okay; no external link
+                continue
+
+            translations.append(Translation(streamer_name, Language(country), url))
     except NoSuchElementException:
-        logging.error(f"failed to parse match page for getting tournament name: no such element (tournament name)")
-        return ''
+        # it's ok: no translations
+        pass
 
     if driver is None:
         close_driver(cur_driver)
 
-    return tournament_url
+    return Match(Team(''), Team(''), datetime.datetime.utcnow(), MatchStars.ZERO, Tournament(url=tournament_url),
+                 MatchState.UNKNOWN, '', translations=translations)
 
 
 def _parse_tournament_page(url: str, driver: WebDriver = None) -> Optional[Tournament]:
@@ -168,13 +210,17 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
         out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
                          datetime.datetime.fromtimestamp(time_utc),
                          domain.match_stars.MatchStars(stars_count),
-                         Tournament(), domain.match_state.MatchState.PLANNED, match_url))
+                         Tournament(), domain.match_state.MatchState.PLANNED, match_url, list()))
 
     # filling tournaments
     for match in out:
         try:
-            tournament_url = _parse_match_page_and_get_tournament_url(match.url, cur_driver)
-            match.tournament = _parse_tournament_page(tournament_url, cur_driver)
+            parsed_match = _parse_match_page_and_get_tournament_url(match.url, cur_driver)
+            if not match:
+                continue
+
+            match.tournament = _parse_tournament_page(parsed_match.tournament.url, cur_driver)
+            match.translations = parsed_match.translations
         except Exception as ex:
             logging.error(ex)
             out.remove(match)
