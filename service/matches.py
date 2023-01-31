@@ -27,22 +27,40 @@ def get_upcoming_matches():
 def get_upcoming_matches_str() -> str:
     matches = get_upcoming_matches()
     match_str_list = list()
+
+    # remove all unnecessary (non-target) matches to make it easier to apply
+    # the logic of tournament description (one for all matches or tournamet name per each match)
+    tournaments_names = set()
+    target_matches = list()
     for match in matches:
         russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
+        if match.stars != MatchStars.ZERO and len(russian_translations) > 0:
+            target_matches.append(match)
+            tournaments_names.add(match.tournament.name)
 
-        if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE] and \
-                len(russian_translations) > 0:
-            if len(russian_translations) > 1:
-                translations_str = ' '.join(
-                    [f"<a href='{tr.url}'>🇷🇺 {tr.streamer_name}</a>" for tr in russian_translations])
-            else:
-                translations_str = f"<a href='{russian_translations[0].url}'>🇷🇺</a>"
-            match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
-                        f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name} " \
-                        f"({match.tournament.name}) {translations_str}"
-            match_str_list.append(match_str)
+    for match in target_matches:
+        russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
 
-    return '\n'.join(match_str_list)
+        translations_str = ''
+        if len(russian_translations) > 1:
+            translations_str = ' '.join(
+                [f"<a href='{tr.url}'>{tr.streamer_name}🎥</a>" for tr in russian_translations])
+        elif len(russian_translations) > 0:
+            translations_str = f"<a href='{russian_translations[0].url}'>🎥</a>"
+
+        tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
+
+        match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
+                    f"{'⭐' * match.stars.value}\t{match.team1.name} - {match.team2.name} " + \
+                    f"{tournament_name_str} {translations_str}"
+        match_str_list.append(match_str)
+
+    msg = ''
+    if len(tournaments_names) == 1:
+        msg += f'Сегодня игры <b>{tournaments_names.pop()}</b>\n\n'
+
+    msg += '\n\n'.join(match_str_list)
+    return msg
 
 
 def _get_cache():
