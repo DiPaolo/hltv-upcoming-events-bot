@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 import logging
 import os
+import threading
+import time
 
+import schedule
+import telegram
 from telegram import Update, ForceReply, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # включаем логгирование
 import config
-import service
+import service.tg_notifier
 from domain.match_stars import MatchStars
 from service.matches import get_upcoming_matches
 
@@ -36,24 +40,12 @@ def start(engine: Update, context: CallbackContext) -> None:
 
 
 def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
-    matches = get_upcoming_matches()
-    match_str_list = list()
-    for match in matches:
-        russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
+    upcoming_matches_str = service.matches.get_upcoming_matches_str()
+    engine.message.reply_text('ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str, parse_mode=ParseMode.HTML)
 
-        if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE] and \
-                len(russian_translations) > 0:
-            if len(russian_translations) > 1:
-                translations_str = ' '.join(
-                    [f"<a href='{tr.url}'>🇷🇺 {tr.streamer_name}</a>" for tr in russian_translations])
-            else:
-                translations_str = f"<a href='{russian_translations[0].url}'>🇷🇺</a>"
-            match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
-                        f"{'*' * match.stars.value}\t{match.team1.name} - {match.team2.name} " \
-                        f"({match.tournament.name}) {translations_str}"
-            match_str_list.append(match_str)
 
-    engine.message.reply_text('Нифига' if len(matches) == 0 else '\n\n'.join(match_str_list), parse_mode=ParseMode.HTML)
+def subscribe_command(engine: Update, context: CallbackContext) -> None:
+    service.tg_notifier.add_subscriber(engine.effective_chat.id)
 
 
 # другой обработчик - для команды /help. Когда пользователь вводит /help, вызывается этот код
@@ -65,10 +57,9 @@ def help_command(engine: Update, context: CallbackContext) -> None:
                               "<u>underline</u>, <ins>underline</ins>", parse_mode=ParseMode.HTML)
 
 
-def echo(engine: Update, context: CallbackContext) -> None:
-    # вызываем команду отправки сообщения пользователю, используя
-    # при это текст сообщения, полученный от пользователя
-    engine.message.reply_text(engine.message.text)
+def send_message(chat_id: int, msg: str):
+    bot = telegram.Bot(token=os.getenv('DP_TG_BOT_TOKEN'))
+    bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
 
 
 def main() -> None:
@@ -93,6 +84,7 @@ def main() -> None:
     # пользователь будет выбирать соответствующие команды
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("matches", get_upcoming_matches_command))
+    dispatcher.add_handler(CommandHandler("subscribe", subscribe_command))
     dispatcher.add_handler(CommandHandler("help", help_command))
 
     # говорим обработчику сообений, чтобы он вызывал функцию echo каждый раз,
@@ -102,7 +94,7 @@ def main() -> None:
     # он означает, что функция echo будет вызываться только тогда, когда пользователь
     # ввел именно текст, а не команду; в противном случае, если пользователь введет
     # команду /start или /help, эта функция будет вызвана, что нам не нужно
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
     # непосредственно старт бота
     engine.start_polling()
@@ -115,11 +107,26 @@ def _get_env_val_as_bool(val) -> bool:
     return val if type(val) == bool else val.lower() in ['true', 'yes', '1']
 
 
+class ScheduleThread(threading.Thread):
+    @classmethod
+    def run(cls):
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+
+def app_init():
+    continuous_thread = ScheduleThread()
+    continuous_thread.start()
+
+
 if __name__ == '__main__':
     env_debug_val = os.environ.get('DP_TG_BOT_DEBUG')
     if env_debug_val:
         config.DEBUG = _get_env_val_as_bool(env_debug_val)
 
+    app_init()
     service.matches.init()
+    service.tg_notifier.init(send_message)
 
     main()
