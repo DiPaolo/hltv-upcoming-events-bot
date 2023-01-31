@@ -7,10 +7,11 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 # включаем логгирование
 import config
+import service
 from domain.match_stars import MatchStars
 from domain.match_state import get_all_match_state_names
 from domain.translation import Translation
-from hltv_parser import get_upcoming_matches
+from service.matches import get_upcoming_matches
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -111,7 +112,17 @@ def main() -> None:
     engine.idle()
 
 
+def _get_env_val_as_bool(val) -> bool:
+    return val if type(val) == bool else val.lower() in ['true', 'yes', '1']
+
+
 if __name__ == '__main__':
+    env_debug_val = os.environ.get('DP_TG_BOT_DEBUG')
+    if env_debug_val:
+        config.DEBUG = _get_env_val_as_bool(env_debug_val)
+
+    service.matches.init()
+
     # import db.team
     # import db.match
     # import db.match_stars

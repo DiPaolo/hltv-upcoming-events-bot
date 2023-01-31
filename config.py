@@ -1,3 +1,5 @@
+DEBUG = False
+
 # parsing
 BASE_URL = 'https://www.hltv.org'  # no trailing slash
 
