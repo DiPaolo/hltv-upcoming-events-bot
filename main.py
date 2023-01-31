@@ -9,8 +9,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import config
 import service
 from domain.match_stars import MatchStars
-from domain.match_state import get_all_match_state_names
-from domain.translation import Translation
 from service.matches import get_upcoming_matches
 
 logging.basicConfig(
@@ -46,7 +44,8 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
         if match.stars in [MatchStars.ONE, MatchStars.TWO, MatchStars.THREE, MatchStars.FOUR, MatchStars.FIVE] and \
                 len(russian_translations) > 0:
             if len(russian_translations) > 1:
-                translations_str = ' '.join([f"<a href='{tr.url}'>🇷🇺 {tr.streamer_name}</a>" for tr in russian_translations])
+                translations_str = ' '.join(
+                    [f"<a href='{tr.url}'>🇷🇺 {tr.streamer_name}</a>" for tr in russian_translations])
             else:
                 translations_str = f"<a href='{russian_translations[0].url}'>🇷🇺</a>"
             match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
@@ -122,38 +121,5 @@ if __name__ == '__main__':
         config.DEBUG = _get_env_val_as_bool(env_debug_val)
 
     service.matches.init()
-
-    # import db.team
-    # import db.match
-    # import db.match_stars
-    # import db.match_state
-    # import db.tournament
-    # from db.common import init_db
-    #
-    # db.common.init_db(config.DB_FILENAME)
-    #
-    # for match_state in get_all_match_state_names():
-    #     db.match_state.add_match_state(match_state)
-    #
-    # db.tournament.add_unknown_tournament()
-
-    #
-    # matches = get_upcoming_matches()
-    # for match in matches:
-    #     db.match.add_match_from_domain_object(match)
-
-    # # test
-    # team1_id = db.team.add_team("MASONIC", "https://www.hltv.org/team/10867/masonic")
-    # team2_id = db.team.add_team("Invictus International", "https://www.hltv.org/team/10817/invictus-international")
-    # new_match = domain.match.Match(domain.team.Team('Navi'), domain.team.Team('BIG'),
-    #                                datetime.datetime.fromtimestamp(1674318600),
-    #                                domain.match_stars.MatchStars.THREE,
-    #                                domain.match_state.MatchState.FINISHED,
-    #                                'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
-    # db.match.add_match_from_domain_object(new_match)
-    # db.match.add_match(team1_id, team2_id,
-    #                    1674318600,
-    #                    db.match_stars.MatchStars.FOUR,
-    #                    'https://www.hltv.org/matches/2361205/masonic-vs-invictus-international-thunderpick-bitcoin-series-2')
 
     main()

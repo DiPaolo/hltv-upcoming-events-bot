@@ -1,17 +1,13 @@
 import logging
-import pickle
 import threading
 import time
 from typing import Optional, List
 
-import config
 import schedule
 
-import domain.match
+import config
 import hltv_parser
 
-
-_PICKLE_FILENAME = '.matches_cache'
 _CACHED_MATCHES: Optional[List] = None
 
 
