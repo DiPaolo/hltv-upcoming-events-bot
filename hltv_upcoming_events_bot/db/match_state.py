@@ -4,8 +4,8 @@ from typing import Optional
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
-import domain.match_state
-from db.common import Base, get_engine
+import hltv_upcoming_events_bot.domain.match_state
+from hltv_upcoming_events_bot.db.common import Base, get_engine
 
 
 class MatchState(Base):
@@ -17,11 +17,11 @@ class MatchState(Base):
         return f"MatchState(id={self.id!r}, name={self.name!r})"
 
     @staticmethod
-    def from_domain_object(domain_obj: domain.match_state.MatchState):
-        return domain.match_state.MatchState(domain_obj.value)
+    def from_domain_object(domain_obj: hltv_upcoming_events_bot.domain.match_state.MatchState):
+        return hltv_upcoming_events_bot.domain.match_state.MatchState(domain_obj.value)
 
 
-def add_match_state_from_domain_object(match_state: domain.match_state.MatchState, session: Session = None) -> Optional[Integer]:
+def add_match_state_from_domain_object(match_state: hltv_upcoming_events_bot.domain.match_state.MatchState, session: Session = None) -> Optional[Integer]:
     return add_match_state(match_state.name, session)
 
 

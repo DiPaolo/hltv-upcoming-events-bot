@@ -10,17 +10,17 @@ from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-import config
-import domain.match_state
-from domain.language import Language
-from domain.match import Match
-from domain.team import Team
-from domain.tournament import Tournament
-from domain.match_stars import MatchStars
-from domain.match_state import MatchState
+from hltv_upcoming_events_bot import config
+import hltv_upcoming_events_bot.domain.match_state
+from hltv_upcoming_events_bot.domain.language import Language
+from hltv_upcoming_events_bot.domain.match import Match
+from hltv_upcoming_events_bot.domain.team import Team
+from hltv_upcoming_events_bot.domain.tournament import Tournament
+from hltv_upcoming_events_bot.domain.match_stars import MatchStars
+from hltv_upcoming_events_bot.domain.match_state import MatchState
 
 # delays in sec with weight
-from domain.translation import Translation
+from hltv_upcoming_events_bot.domain.translation import Translation
 
 DELAYS = {
     1: 13,
@@ -209,8 +209,8 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
 
         out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
                          datetime.datetime.fromtimestamp(time_utc),
-                         domain.match_stars.MatchStars(stars_count),
-                         Tournament(), domain.match_state.MatchState.PLANNED, match_url, list()))
+                         hltv_upcoming_events_bot.domain.match_stars.MatchStars(stars_count),
+                         Tournament(), hltv_upcoming_events_bot.domain.match_state.MatchState.PLANNED, match_url, list()))
 
     # filling tournaments
     for match in out:

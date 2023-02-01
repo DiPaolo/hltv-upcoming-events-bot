@@ -3,9 +3,8 @@ from typing import Optional, List
 
 import schedule
 
-import config
-import hltv_parser
-from domain.match_stars import MatchStars
+from hltv_upcoming_events_bot import hltv_parser, config
+from hltv_upcoming_events_bot.domain.match_stars import MatchStars
 
 _CACHED_MATCHES: Optional[List] = None
 

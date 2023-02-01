@@ -49,17 +49,17 @@
 1. нажать кнопку `Get From VCS`
 
 1. выбираем пункт слева `GitHub`
-  ![](./assets/images/pycharm_connect_github_scaled.png)
+  ![](hltv_upcoming_events_bot/assets/images/pycharm_connect_github_scaled.png)
 
 1. нажимаем `Log In via GitHub...`
 
 1. нас перекинет в браузер
 
 1. соглашаемся и нажимаем кнопку
-  ![](./assets/images/jetbrains_auth_github_scaled.png)
+  ![](hltv_upcoming_events_bot/assets/images/jetbrains_auth_github_scaled.png)
 
 1. опять соглашаемся и нажимаем кнопку внизу справа
-  ![](./assets/images/github_access_request_scaled.png)
+  ![](hltv_upcoming_events_bot/assets/images/github_access_request_scaled.png)
 
 1. возвращаемся в `PyCharm`, выбираем наш только что созданный проект из списка и нажимаем `Clone`
 

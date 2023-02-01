@@ -1,10 +1,9 @@
 import logging
 import pickle
-from typing import List
 
 import schedule
-import config
-from service.matches import get_upcoming_matches_str
+from hltv_upcoming_events_bot import config
+from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
 _SUBSCRIBERS = list()
 _PICKLE_FILENAME = '.subscribers'

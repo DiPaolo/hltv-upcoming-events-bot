@@ -6,12 +6,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-import config as cfg
-from db.common import Base
-from db.team import *
-from db.match import *
-from db.match_stars import *
-from db.match_state import *
+from hltv_upcoming_events_bot import config as cfg
+from hltv_upcoming_events_bot.db.common import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

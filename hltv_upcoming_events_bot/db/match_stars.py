@@ -1,5 +1,5 @@
 from enum import Enum
-import domain.match_stars
+import hltv_upcoming_events_bot.domain.match_stars
 
 
 class MatchStars(Enum):
@@ -11,5 +11,5 @@ class MatchStars(Enum):
     FIVE = 5
 
     @staticmethod
-    def from_domain_object(domain_obj: domain.match_stars.MatchStars):
+    def from_domain_object(domain_obj: hltv_upcoming_events_bot.domain.match_stars.MatchStars):
         return MatchStars(domain_obj.value)

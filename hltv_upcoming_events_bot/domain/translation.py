@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from domain.language import Language
+from hltv_upcoming_events_bot.domain.language import Language
 
 
 @dataclass

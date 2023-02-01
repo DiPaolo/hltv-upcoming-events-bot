@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base
 
-import config
+from hltv_upcoming_events_bot import config
 
 engine = Optional[Engine]
 Base = declarative_base()

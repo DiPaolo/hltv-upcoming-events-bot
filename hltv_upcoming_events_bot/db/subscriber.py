@@ -3,15 +3,13 @@ import logging
 from typing import Optional, Dict
 
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import Session
 
-import db.match_state
-import domain.match
-from db.common import Base, get_engine
-from db.match_stars import MatchStars
-from db.team import Team, add_team, get_team
-from db.tournament import get_tournament
-from domain.match_state import get_match_state_name
+import hltv_upcoming_events_bot.domain.match
+from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.match_stars import MatchStars
+from hltv_upcoming_events_bot.db.team import Team, add_team, get_team
+from hltv_upcoming_events_bot.domain import get_match_state_name
 
 
 class Subscriber(Base):
@@ -34,7 +32,7 @@ class Subscriber(Base):
     #     return domain.match.Match()
 
 
-def add_match_from_domain_object(match: domain.match.Match, session: Session = None) -> Optional[Match]:
+def add_match_from_domain_object(match: hltv_upcoming_events_bot.domain.match.Match, session: Session = None) -> Optional[Match]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:
         return None
@@ -46,14 +44,14 @@ def add_match_from_domain_object(match: domain.match.Match, session: Session = N
     team2_id = team2.id if team2 else add_team(match.team2.name, match.team2.url)
 
     state_name = get_match_state_name(match.state)
-    state = db.match_state.get_match_state_by_name(state_name)
-    state_id = state.id if state else db.match_state.add_match_state(state_name)
+    state = hltv_upcoming_events_bot.db.match_state.get_match_state_by_name(state_name)
+    state_id = state.id if state else hltv_upcoming_events_bot.db.match_state.add_match_state(state_name)
 
-    tournament = db.tournament.get_tournament_by_name(match.tournament.name)
+    tournament = hltv_upcoming_events_bot.db.tournament.get_tournament_by_name(match.tournament.name)
     if tournament is None:
-        tournament = db.tournament.add_tournament_from_domain_object(match.tournament)
+        tournament = hltv_upcoming_events_bot.db.tournament.add_tournament_from_domain_object(match.tournament)
         if tournament is None:
-            tournament = db.tournament.get_unknown_tournament()
+            tournament = hltv_upcoming_events_bot.db.tournament.get_unknown_tournament()
             if tournament is None:
                 logging.error(
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')

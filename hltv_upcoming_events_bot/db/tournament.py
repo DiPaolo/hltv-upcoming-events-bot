@@ -4,8 +4,8 @@ from typing import Optional
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
-import domain.tournament
-from db.common import Base, get_engine
+import hltv_upcoming_events_bot.domain.tournament
+from hltv_upcoming_events_bot.db.common import Base, get_engine
 
 _UNKNOWN_TOURNAMENT_NAME = 'Unknown'
 
@@ -24,7 +24,7 @@ class Tournament(Base):
     #     return domain.match.Match()
 
 
-def add_tournament_from_domain_object(tournament: domain.tournament.Tournament, session: Session = None) -> Optional[
+def add_tournament_from_domain_object(tournament: hltv_upcoming_events_bot.domain.tournament.Tournament, session: Session = None) -> Optional[
     Integer]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:

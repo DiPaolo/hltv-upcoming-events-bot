@@ -1,12 +1,11 @@
 import logging
-import sys
 from typing import Optional, Dict
 
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import Session
 
-import domain.team
-from db.common import Base, get_engine
+import hltv_upcoming_events_bot.domain.team
+from hltv_upcoming_events_bot.db.common import Base, get_engine
 
 
 class Team(Base):
@@ -22,11 +21,11 @@ class Team(Base):
     #     return domain.team.Team()
 
     @staticmethod
-    def from_domain_object(team: domain.team.Team, session: Session = None):
+    def from_domain_object(team: hltv_upcoming_events_bot.domain.team.Team, session: Session = None):
         return get_team_by_name(team.name, session)
 
 
-def add_team_from_domain_object(team: domain.team.Team, session: Session = None) -> Optional[Team]:
+def add_team_from_domain_object(team: hltv_upcoming_events_bot.domain.team.Team, session: Session = None) -> Optional[Team]:
     return add_team(team.name, team.url, session)
 
 
