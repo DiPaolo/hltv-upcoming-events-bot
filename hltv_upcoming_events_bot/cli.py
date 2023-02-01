@@ -91,7 +91,7 @@ def app_init():
     continuous_thread.start()
 
 
-if __name__ == '__main__':
+def cli():
     env_debug_val = os.environ.get('DP_TG_BOT_DEBUG')
     if env_debug_val:
         config.DEBUG = _get_env_val_as_bool(env_debug_val)
