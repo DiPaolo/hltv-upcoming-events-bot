@@ -5,7 +5,7 @@ import schedule
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
-_SUBSCRIBERS = list()
+_SUBSCRIBERS = set()
 _PICKLE_FILENAME = '.subscribers'
 _SEND_MESSAGE_FUNC = None
 
@@ -31,7 +31,7 @@ def add_subscriber(tg_id: int):
     global _SUBSCRIBERS
 
     if id not in _SUBSCRIBERS:
-        _SUBSCRIBERS.append(tg_id)
+        _SUBSCRIBERS.add(tg_id)
 
     pickle.dump(_SUBSCRIBERS, open(_PICKLE_FILENAME, 'wb'))
 

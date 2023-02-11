@@ -187,7 +187,10 @@ def get_upcoming_matches(driver: WebDriver = None) -> List[Match]:
             team1_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][1]/span")
             team2_elem = match_elem.find_element(By.XPATH, ".//div[@class='teamrow'][2]/span")
         except NoSuchElementException:
-            logging.error(f"failed to parse team1 or team2 row element: no such element")
+            try:
+                placeholder_elem = match_elem.find_element(By.XPATH, "./div[@class='placeholderrow']")
+            except NoSuchElementException:
+                logging.error(f"failed to parse nor team1 or team2 row elements or placeholderrow element: no such element(s)")
             continue
 
         div_elem = match_elem.find_element(By.XPATH, ".//div")
