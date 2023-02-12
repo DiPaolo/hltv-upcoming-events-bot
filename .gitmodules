@@ -1,0 +1,3 @@
+[submodule "pywebparser.git"]
+	path = pywebparser
+	url = https://gitlab.com/dipaolo/pywebparser.git
