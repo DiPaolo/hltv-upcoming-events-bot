@@ -83,7 +83,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
     out = list()
 
     if not parser:
-        parser = Parser()
+        parser = Parser(is_fast=True)
 
     parser.goto(config.BASE_URL)
 
