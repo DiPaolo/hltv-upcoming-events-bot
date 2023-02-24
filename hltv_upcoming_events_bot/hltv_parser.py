@@ -42,7 +42,7 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
     for stream_elem in streams_elems:
         stream_name_elem = stream_elem.find_element("./div[contains(@class, 'stream-box-embed')]")
         if not stream_name_elem:
-            logging.error(f"failed to parse match page (url={url}) for getting translations")
+            logging.warning(f"failed to parse match page (url={url}) for getting translations")
             continue
 
         streamer_name = stream_name_elem.text
@@ -50,10 +50,12 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
         country_flag_image_elem = stream_name_elem.find_element("./img")
         country = country_flag_image_elem.get_attribute('alt')
 
-        # it's okay if there isno external link
+        # it's okay if there is no external link
         external_link_name_elem = stream_elem.find_element(".//div[contains(@class, 'external-stream')]/a")
         if external_link_name_elem:
             url = external_link_name_elem.get_attribute('href')
+        else:
+            url = ''
 
         translations.append(Translation(streamer_name, Language(country), url))
 
