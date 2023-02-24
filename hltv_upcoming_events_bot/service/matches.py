@@ -44,7 +44,7 @@ def get_upcoming_matches_str() -> str:
         if len(russian_translations) > 1:
             translations_str = ' '.join(
                 [f"<a href='{tr.url}'>{tr.streamer_name}🎥</a>" for tr in russian_translations])
-        elif len(russian_translations) > 0:
+        elif len(russian_translations) == 1:
             translations_str = f"<a href='{russian_translations[0].url}'>🎥</a>"
 
         tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
@@ -72,4 +72,10 @@ def _get_cache():
 def _update_cache():
     global _CACHED_MATCHES
     logging.getLogger(__name__).info('Update cache')
-    _CACHED_MATCHES = hltv_parser.get_upcoming_matches()
+
+    # use try/except because if something goes wrong inside, the scheduler will
+    # not emit the event next time
+    try:
+        _CACHED_MATCHES = hltv_parser.get_upcoming_matches()
+    except:
+        pass

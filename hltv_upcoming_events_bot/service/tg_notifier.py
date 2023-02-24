@@ -15,7 +15,7 @@ def init(send_message_func):
     global _SEND_MESSAGE_FUNC
 
     if config.DEBUG:
-        schedule.every(1).hours.do(_notify_subscribers)
+        schedule.every(2).minutes.do(_notify_subscribers)
     else:
         schedule.every().day.at("13:10:00").do(_notify_subscribers)
 
@@ -43,6 +43,14 @@ def _notify_subscribers():
         logging.getLogger(__name__).error('Failed to notify subscribers because ')
         return
 
-    msg = get_upcoming_matches_str()
-    for subscriber_id in _SUBSCRIBERS:
-        _SEND_MESSAGE_FUNC(subscriber_id, msg)
+    # use try/except because if something goes wrong inside, the scheduler will
+    # not emit the event next time
+    try:
+        msg = get_upcoming_matches_str()
+        for subscriber_id in _SUBSCRIBERS:
+            try:
+                _SEND_MESSAGE_FUNC(subscriber_id, msg)
+            except Exception as ex:
+                logging.error(f'Exception while notifying subscriber (id={subscriber_id}): {ex}')
+    except Exception as ex:
+        logging.error(f'Exception while getting upcoming matches text: {ex}')
