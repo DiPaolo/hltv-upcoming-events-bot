@@ -50,12 +50,13 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
         country_flag_image_elem = stream_name_elem.find_element("./img")
         country = country_flag_image_elem.get_attribute('alt')
 
-        # it's okay if there is no external link
         external_link_name_elem = stream_elem.find_element(".//div[contains(@class, 'external-stream')]/a")
         if external_link_name_elem:
             url = external_link_name_elem.get_attribute('href')
         else:
-            url = ''
+            # there is no external link; check if embedded link exists (it's usually
+            # used for YouTube translations)
+            url = stream_name_elem.get_attribute('data-stream-embed')
 
         translations.append(Translation(streamer_name, Language(country), url))
 
