@@ -40,12 +40,8 @@ def get_upcoming_matches_str() -> str:
     for match in target_matches:
         russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
 
-        translations_str = ''
-        if len(russian_translations) > 1:
-            translations_str = ' '.join(
-                [f"<a href='{tr.url}'>{tr.streamer_name}🎥</a>" for tr in russian_translations])
-        elif len(russian_translations) == 1:
-            translations_str = f"<a href='{russian_translations[0].url}'>🎥</a>"
+        translations_str = ' '.join(
+            [f"<a href='{tr.url}'>🎥 {tr.streamer_name}</a>" for tr in russian_translations])
 
         tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
 
