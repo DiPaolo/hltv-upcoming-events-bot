@@ -17,7 +17,7 @@ def init(send_message_func):
     if config.DEBUG:
         schedule.every(2).minutes.do(_notify_subscribers)
     else:
-        schedule.every().day.at("06:10:00").do(_notify_subscribers)
+        schedule.every().day.at("09:10:00").do(_notify_subscribers)
 
     try:
         _SUBSCRIBERS = pickle.load(open(_PICKLE_FILENAME, 'rb'))
