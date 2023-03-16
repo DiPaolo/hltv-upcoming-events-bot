@@ -7,3 +7,4 @@ schedule~=1.1.0
 setuptools~=65.6.3
 requests~=2.28.2
 lxml~=4.9.2
+cloudscraper~=1.2.69

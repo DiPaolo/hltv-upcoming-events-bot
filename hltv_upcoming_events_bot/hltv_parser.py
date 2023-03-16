@@ -86,7 +86,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
     out = list()
 
     if not parser:
-        parser = Parser(is_fast=True)
+        parser = Parser(is_fast=True, use_cloudflare_bypass=True)
 
     parser.goto(config.BASE_URL)
 
