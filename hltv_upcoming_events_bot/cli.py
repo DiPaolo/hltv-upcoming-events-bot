@@ -17,7 +17,6 @@ import hltv_upcoming_events_bot.service.tg_notifier
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
-logger = logging.getLogger(__name__)
 
 
 def start(engine: Update, context: CallbackContext) -> None:
@@ -30,7 +29,8 @@ def start(engine: Update, context: CallbackContext) -> None:
 
 def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
     upcoming_matches_str = hltv_upcoming_events_bot.service.matches.get_upcoming_matches_str()
-    engine.message.reply_text('ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str, parse_mode=ParseMode.HTML)
+    engine.message.reply_text('ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str,
+                              parse_mode=ParseMode.HTML)
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
@@ -95,6 +95,8 @@ def cli():
     env_debug_val = os.environ.get('DP_TG_BOT_DEBUG')
     if env_debug_val:
         config.DEBUG = _get_env_val_as_bool(env_debug_val)
+
+    logging.info('Starting bot...')
 
     app_init()
     hltv_upcoming_events_bot.service.matches.init()

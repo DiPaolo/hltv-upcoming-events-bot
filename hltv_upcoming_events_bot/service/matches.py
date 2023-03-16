@@ -67,11 +67,11 @@ def _get_cache():
 
 def _update_cache():
     global _CACHED_MATCHES
-    logging.getLogger(__name__).info('Update cache')
+    logging.info('Update cache')
 
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
     try:
         _CACHED_MATCHES = hltv_parser.get_upcoming_matches()
-    except:
-        pass
+    except Exception as ex:
+        logging.error(f'Exception while updating cache with upcoming matches: {ex}')
