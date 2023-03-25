@@ -7,7 +7,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from hltv_upcoming_events_bot import config as cfg
-from hltv_upcoming_events_bot.db.common import Base
+from hltv_upcoming_events_bot.db.common import Base, get_db_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -76,11 +76,11 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-db_folder = os.path.join(cfg.OUT_BASE_FOLDER, cfg.OUT_DB_FOLDER)
-db_filename = os.path.join(db_folder, f'{cfg.DB_FILENAME}.db')
-db_abs_filename = os.path.abspath(db_filename)
-db_abs_filename = db_abs_filename.replace('\\', '/')
-config.set_main_option("sqlalchemy.url", f"sqlite:///{db_abs_filename}")
+# db_folder = os.path.join(cfg.OUT_BASE_FOLDER, cfg.OUT_DB_FOLDER)
+# db_filename = os.path.join(db_folder, f'{cfg.DB_FILENAME}.db')
+# db_abs_filename = os.path.abspath(db_filename)
+# db_abs_filename = db_abs_filename.replace('\\', '/')
+config.set_main_option("sqlalchemy.url", get_db_url(cfg.DB_FILENAME))
 
 if context.is_offline_mode():
     run_migrations_offline()
