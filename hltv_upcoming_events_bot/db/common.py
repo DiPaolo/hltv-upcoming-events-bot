@@ -13,7 +13,7 @@ Base = declarative_base()
 
 
 def get_db_url(db_name: str) -> str:
-    if config.USE_SQLITE:
+    if config.DB_USE_SQLITE:
         db_folder = os.path.join(config.OUT_BASE_FOLDER, config.OUT_DB_FOLDER)
         db_filename = os.path.join(db_folder, f'{db_name}.db')
         db_abs_filename = os.path.abspath(db_filename)

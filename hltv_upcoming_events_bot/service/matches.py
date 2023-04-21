@@ -1,26 +1,38 @@
+import datetime
 import logging
 from typing import Optional, List
 
 import schedule
 
 from hltv_upcoming_events_bot import hltv_parser, config
+import hltv_upcoming_events_bot.db.match as db
 from hltv_upcoming_events_bot.domain.match_stars import MatchStars
 
 _CACHED_MATCHES: Optional[List] = None
 
 
 def init():
-    if config.DEBUG:
-        schedule.every(3).minutes.do(_update_cache)
-    else:
-        schedule.every(3).hours.do(_update_cache)
-
-    # initial load of cache
-    _update_cache()
+    if not config.DB_USE_DB:
+        _init_for_no_db_usage()
 
 
 def get_upcoming_matches():
-    return _get_cache()
+    if config.DB_USE_DB:
+        logging.info('Getting upcoming matches from database')
+
+        cur_time_utc = datetime.datetime.utcnow()
+        cur_time_utc_timestamp = round(cur_time_utc.timestamp())
+        tomorrow_same_time_utc = cur_time_utc + (
+            datetime.timedelta(days=1) if cur_time_utc.hour < 5 else datetime.timedelta())
+        tomorrow_noon_utc = datetime.datetime(year=tomorrow_same_time_utc.year, month=tomorrow_same_time_utc.month,
+                                              day=tomorrow_same_time_utc.day, hour=12)
+        tomorrow_noon_utc_timestamp = round(tomorrow_noon_utc.timestamp())
+
+        matches = db.get_upcoming_matches_in_datetime_interval(cur_time_utc_timestamp, tomorrow_noon_utc_timestamp)
+        return matches
+    else:
+        logging.info('Getting upcoming matches from local cache not using database')
+        return _get_cache_no_db_usage()
 
 
 def get_upcoming_matches_str() -> str:
@@ -28,7 +40,7 @@ def get_upcoming_matches_str() -> str:
     match_str_list = list()
 
     # remove all unnecessary (non-target) matches to make it easier to apply
-    # the logic of tournament description (one for all matches or tournamet name per each match)
+    # the logic of tournament description (one for all matches or tournament name per each match)
     tournaments_names = set()
     target_matches = list()
     for match in matches:
@@ -58,14 +70,24 @@ def get_upcoming_matches_str() -> str:
     return msg
 
 
-def _get_cache():
+def _init_for_no_db_usage():
+    if config.DEBUG:
+        schedule.every(3).minutes.do(_update_cache_no_db_usage)
+    else:
+        schedule.every(3).hours.do(_update_cache_no_db_usage)
+
+    # initial load of cache
+    _update_cache_no_db_usage()
+
+
+def _get_cache_no_db_usage():
     global _CACHED_MATCHES
     if not _CACHED_MATCHES:
-        _update_cache()
+        _update_cache_no_db_usage()
     return _CACHED_MATCHES
 
 
-def _update_cache():
+def _update_cache_no_db_usage():
     global _CACHED_MATCHES
     logging.info('Update cache')
 

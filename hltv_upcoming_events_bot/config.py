@@ -4,9 +4,10 @@ DEBUG = False
 BASE_URL = 'https://www.hltv.org'  # no trailing slash
 
 # database
-USE_SQLITE = False
+DB_USE_DB = True
+DB_USE_SQLITE = False
 DB_FILENAME = 'hltv_events'  # used as a database name for Postgres
-if USE_SQLITE:
+if DB_USE_SQLITE:
     # makes sense for SQLite only
     OUT_BASE_FOLDER = '.'
     OUT_DB_FOLDER = 'db'
