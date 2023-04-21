@@ -1,4 +1,5 @@
 DEBUG = False
+BOT_TOKEN = None  # None means it will be taken from command line; it will be set if appropriate env variable is set
 
 # parsing
 BASE_URL = 'https://www.hltv.org'  # no trailing slash

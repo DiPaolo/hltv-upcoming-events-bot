@@ -4,7 +4,8 @@ from typing import Optional, List
 
 import schedule
 
-from hltv_upcoming_events_bot import hltv_parser, config
+from hltv_upcoming_events_bot import config
+from hltv_upcoming_events_bot.service import hltv_parser
 import hltv_upcoming_events_bot.db.match as db
 from hltv_upcoming_events_bot.domain.match_stars import MatchStars
 

@@ -2,7 +2,7 @@ import datetime
 import logging
 from typing import Optional, Dict, List
 
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger, and_
 from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.domain.match
@@ -114,9 +114,7 @@ def get_upcoming_matches_in_datetime_interval(start_from: int, until_to: int, se
     if cur_session is None:
         return list()
 
-    # filters = [Store.name == name, Store.address == address]
-    # rows = cur_session.query(Match).filter(*filters).all()
-    rows = cur_session.query(Match).filter(start_from < Match.unix_time_utc_sec < until_to).all()
+    rows = cur_session.query(Match).filter(and_(start_from < Match.unix_time_utc_sec, Match.unix_time_utc_sec < until_to)).all()
 
     # created at the beginning of the function
     if not session:

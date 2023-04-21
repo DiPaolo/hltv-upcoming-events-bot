@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, Session
 
 from hltv_upcoming_events_bot import config
 
@@ -42,3 +42,11 @@ def init_db(name: str):
 
 def get_engine():
     return engine
+
+
+def create_session() -> Session:
+    return Session(get_engine())
+
+
+def session_commit(session: Session):
+    session.commit()
