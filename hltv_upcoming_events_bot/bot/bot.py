@@ -19,8 +19,8 @@ def start_command(engine: Update, context: CallbackContext) -> None:
 def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
     upcoming_matches_str = matches_service.get_upcoming_matches_str()
-    engine.message.reply_text('ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str,
-                              parse_mode=ParseMode.HTML)
+    send_message(engine.effective_chat.id,
+                 'ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str)
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
@@ -45,7 +45,7 @@ def version_command(engine: Update, context: CallbackContext) -> None:
 
 def send_message(chat_id: int, msg: str):
     bot = telegram.Bot(config.BOT_TOKEN)
-    bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
+    bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 def start(token: str) -> None:
