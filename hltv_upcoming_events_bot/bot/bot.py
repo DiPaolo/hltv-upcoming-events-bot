@@ -7,6 +7,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext
 import hltv_upcoming_events_bot
 import hltv_upcoming_events_bot.service.matches as matches_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
+from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.bot.utils import log_command
 
 
@@ -27,6 +28,11 @@ def subscribe_command(engine: Update, context: CallbackContext) -> None:
     tg_notifier_service.add_subscriber(engine.effective_chat.id)
 
 
+def unsubscribe_command(engine: Update, context: CallbackContext) -> None:
+    log_command(engine)
+    tg_notifier_service.remove_subscriber(engine.effective_chat.id)
+
+
 def help_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
     engine.message.reply_text(_get_help_text(), parse_mode=ParseMode.HTML)
@@ -38,7 +44,7 @@ def version_command(engine: Update, context: CallbackContext) -> None:
 
 
 def send_message(chat_id: int, msg: str):
-    bot = telegram.Bot(token=os.getenv('DP_TG_BOT_TOKEN'))
+    bot = telegram.Bot(config.BOT_TOKEN)
     bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
 
 
@@ -50,6 +56,7 @@ def start(token: str) -> None:
     dispatcher.add_handler(CommandHandler("start", start_command))
     dispatcher.add_handler(CommandHandler("matches", get_upcoming_matches_command))
     dispatcher.add_handler(CommandHandler("subscribe", subscribe_command))
+    dispatcher.add_handler(CommandHandler("unsubscribe", unsubscribe_command))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("version", version_command))
 

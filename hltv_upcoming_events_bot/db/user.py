@@ -6,6 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot import domain
 
 
 class User(Base):
@@ -21,6 +22,11 @@ class User(Base):
 
     def __repr__(self):
         return f"User(id={self.id!r})"
+
+
+def add_user_from_domain_object(user: domain.User, session: Session) -> Optional[Integer]:
+    return add_user(user.telegram_id, user.username, user.first_name, user.last_name, user.is_bot, user.is_premium,
+                    user.language_code, session)
 
 
 def add_user(telegram_id: int, username: str, first_name: str, last_name: str, is_bot: bool, is_premium: bool,

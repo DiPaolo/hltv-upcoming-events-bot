@@ -1,17 +1,15 @@
 import logging
-import pickle
 
 import schedule
+
+import hltv_upcoming_events_bot.service.db as db_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
-_SUBSCRIBERS = set()
-_PICKLE_FILENAME = '.subscribers'
 _SEND_MESSAGE_FUNC = None
 
 
 def init(send_message_func):
-    global _SUBSCRIBERS
     global _SEND_MESSAGE_FUNC
 
     if config.DEBUG:
@@ -19,21 +17,15 @@ def init(send_message_func):
     else:
         schedule.every().day.at("09:10:00").do(_notify_subscribers)
 
-    try:
-        _SUBSCRIBERS = pickle.load(open(_PICKLE_FILENAME, 'rb'))
-    except:
-        pass
-
     _SEND_MESSAGE_FUNC = send_message_func
 
 
 def add_subscriber(tg_id: int):
-    global _SUBSCRIBERS
+    db_service.subscribe_user_by_telegram_id(tg_id)
 
-    if id not in _SUBSCRIBERS:
-        _SUBSCRIBERS.add(tg_id)
 
-    pickle.dump(_SUBSCRIBERS, open(_PICKLE_FILENAME, 'wb'))
+def remove_subscriber(tg_id: int):
+    db_service.unsubscribe_user_by_telegram_id(tg_id)
 
 
 def _notify_subscribers():
@@ -47,10 +39,10 @@ def _notify_subscribers():
     # not emit the event next time
     try:
         msg = get_upcoming_matches_str()
-        for subscriber_id in _SUBSCRIBERS:
+        for subs in db_service.get_subscribers():
             try:
-                _SEND_MESSAGE_FUNC(subscriber_id, msg)
+                _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
             except Exception as ex:
-                logging.error(f'Exception while notifying subscriber (id={subscriber_id}): {ex}')
+                logging.error(f'Exception while notifying subscriber (telegram_id={subs.telegram_id}): {ex}')
     except Exception as ex:
         logging.error(f'Exception while getting upcoming matches text: {ex}')

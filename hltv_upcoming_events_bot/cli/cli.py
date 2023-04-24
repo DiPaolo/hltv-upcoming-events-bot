@@ -39,14 +39,14 @@ cli.add_command(bot)
 @bot.command()
 @click.option('-t', '--token', default=None, help='Bot token')
 def start(token: str):
-    if token is None:
-        if config.BOT_TOKEN is None:
-            logging.error('Bot token is not set')
-            click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
-                       "'-t' / '--token' command line argument")
-            sys.exit(1)
+    if token is not None:
+        config.BOT_TOKEN = token
 
-        token = config.BOT_TOKEN
+    if config.BOT_TOKEN is None:
+        logging.error('Bot token is not set')
+        click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
+                   "'-t' / '--token' command line argument")
+        sys.exit(1)
 
     continuous_thread = ScheduleThread()
     continuous_thread.start()
@@ -57,7 +57,7 @@ def start(token: str):
     db.init_db(config.DB_FILENAME)
 
     try:
-        bot_impl.start(token)
+        bot_impl.start(config.BOT_TOKEN)
     except KeyboardInterrupt:
         logging.info('Keyboard interrupt. Successfully exiting application')
         sys.exit(0)

@@ -40,8 +40,7 @@ def get_upcoming_matches_str() -> str:
     target_matches = list()
     for match in matches:
         russian_translations = list(filter(lambda s: s.language == 'Russia', match.streamers))
-        # if match.stars != domain.MatchStars.ZERO and len(russian_translations) > 0:
-        if len(russian_translations) > 0:
+        if match.stars != domain.MatchStars.ZERO and len(russian_translations) > 0:
             target_matches.append(match)
             tournaments_names.add(match.tournament.name)
 
