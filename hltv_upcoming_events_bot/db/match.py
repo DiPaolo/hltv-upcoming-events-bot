@@ -1,15 +1,16 @@
 import datetime
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger, and_
+from sqlalchemy.orm import Session, relationship
 
-import hltv_upcoming_events_bot.domain.match
+import hltv_upcoming_events_bot.db as db
+from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db.common import Base, get_engine
 from hltv_upcoming_events_bot.db.match_stars import MatchStars
+from hltv_upcoming_events_bot.db.streamer import Streamer
 from hltv_upcoming_events_bot.db.team import Team, add_team, get_team
-from hltv_upcoming_events_bot.domain import get_match_state_name
 
 
 class Match(Base):
@@ -22,91 +23,129 @@ class Match(Base):
     state_id = Column(Integer, ForeignKey("match_state.id"))
     tournament_id = Column(Integer, ForeignKey('tournament.id'))
     url = Column(String, nullable=False, unique=True)
+    streamers = relationship('Streamer', backref='match')
 
     def __repr__(self):
         return f"Match(id={self.id!r})"
 
-    # def to_domain_object(self):
-    #     return domain.match.Match()
+    def to_domain_object(self, session: Session):
+        team1 = get_team(self.team1_id, session)
+        team2 = get_team(self.team2_id, session)
+        tournament = db.get_tournament(self.tournament_id, session)
+        match_state = db.get_match_state(self.state_id, session)
+
+        return domain.match.Match(team1=team1.to_domain_object(), team2=team2.to_domain_object(),
+                                  time_utc=datetime.datetime.fromtimestamp(self.unix_time_utc_sec),
+                                  stars=self.stars,
+                                  tournament=tournament.to_domain_object(),
+                                  state=match_state.to_domain_object(),
+                                  url=self.url,
+                                  streamers=[s.to_domain_object() for s in self.streamers])
 
 
-def add_match_from_domain_object(match: hltv_upcoming_events_bot.domain.match.Match, session: Session = None) -> Optional[Match]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    team1 = Team.from_domain_object(match.team1)
+def add_match_from_domain_object(match: domain.match.Match, session: Session) -> Optional[Match]:
+    team1 = Team.from_domain_object(match.team1, session)
     team1_id = team1.id if team1 else add_team(match.team1.name, match.team1.url)
 
-    team2 = Team.from_domain_object(match.team2)
+    team2 = Team.from_domain_object(match.team2, session)
     team2_id = team2.id if team2 else add_team(match.team2.name, match.team2.url)
 
-    state_name = get_match_state_name(match.state)
-    state = hltv_upcoming_events_bot.db.match_state.get_match_state_by_name(state_name)
-    state_id = state.id if state else hltv_upcoming_events_bot.db.match_state.add_match_state(state_name)
+    state_name = domain.get_match_state_name(match.state)
+    state = db.match_state.get_match_state_by_name(state_name, session)
+    state_id = state.id if state else db.match_state.add_match_state(state_name)
 
-    tournament = hltv_upcoming_events_bot.db.tournament.get_tournament_by_name(match.tournament.name)
-    if tournament is None:
-        tournament = hltv_upcoming_events_bot.db.tournament.add_tournament_from_domain_object(match.tournament)
-        if tournament is None:
-            tournament = hltv_upcoming_events_bot.db.tournament.get_unknown_tournament()
-            if tournament is None:
+    tournament_id = db.tournament.get_tournament_id_by_name(match.tournament.name)
+    if tournament_id is None:
+        tournament_id = db.tournament.add_tournament_from_domain_object(match.tournament)
+        if tournament_id is None:
+            tournament_id = db.tournament.get_unknown_tournament_id()
+            if tournament_id is None:
                 logging.error(
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
                 return None
 
-    return add_match(team1_id, team2_id,
-                     int(datetime.datetime.timestamp(match.time_utc)), MatchStars.from_domain_object(match.stars),
-                     tournament.id, state_id, match.url)
+    streamers = list()
+    for streamer in match.streamers:
+        db_streamer = db.get_streamer_by_url(streamer.url, session)
+        if db_streamer is None:
+            logging.error(f'Streamer (name={streamer.name}, language={streamer.language}) has no URL')
+            continue
+        streamers.append(db_streamer)
+
+    match = add_match(team1_id, team2_id,
+                      int(datetime.datetime.timestamp(match.time_utc)), MatchStars.from_domain_object(match.stars),
+                      tournament_id, state_id, match.url, streamers, session)
+
+    return match
 
 
 def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_stars: MatchStars, tournament_id: Integer,
-              state_id: Integer, url: str,
-              session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    team1 = get_team(team1_id)
+              state_id: Integer, url: str, streamers: List[Streamer], session: Session) -> Optional[Integer]:
+    team1 = get_team(team1_id, session)
     if team1 is None:
         logging.error(f'failed to add match because team1 (id={team1_id}) is not found')
         return None
 
-    team2 = get_team(team2_id)
+    team2 = get_team(team2_id, session)
     if team2 is None:
         logging.error(f'failed to add match because team2 (id={team2_id}) is not found')
         return None
 
-    match = Match(unix_time_utc_sec=unix_time_sec, team1_id=team1_id, team2_id=team2_id, stars=match_stars,
-                  state_id=state_id, url=url)
-    cur_session.add(match)
-
-    # created at the beginning of the function
-    if not session:
+    match = get_match_by_url(url, session)
+    if match is None:
+        match = Match(unix_time_utc_sec=unix_time_sec, team1_id=team1_id, team2_id=team2_id, stars=match_stars,
+                      state_id=state_id, tournament_id=tournament_id, url=url)
         try:
-            cur_session.commit()
+            session.add(match)
+            session.flush()
+            session.refresh(match)
+            for s in streamers:
+                s.match_id = match.id
+            session.commit()
             logging.info(
                 f"Match added: team1 (id={team1.id}, name={team1.name}) vs team2 (id={team2.id}, name={team2.name}) "
                 f"with the status (id={state_id}) at {str(datetime.datetime.fromtimestamp(match.unix_time_utc_sec))}")
+            return match.id
         except Exception as e:
-            print(f"ERROR failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
-                  f"{datetime.datetime.fromtimestamp(unix_time_sec)}: {e}")
+            logging.error(f"Failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
+                          f"{datetime.datetime.fromtimestamp(unix_time_sec)}: {e}")
+            return None
 
-    return match.id
+    return match
 
 
-def get_match(match_id: Integer, session: Session = None) -> Optional[Match]:
-    cur_session = session if session else Session(get_engine())
+def get_match(match_id: Integer) -> Optional[Match]:
+    cur_session = Session(get_engine())
     if cur_session is None:
         return None
 
     ret = cur_session.get(Match, match_id)
-
-    # created at the beginning of the function
-    if not session:
-        cur_session.commit()
-
+    cur_session.close()
     return ret
+
+
+def get_match_by_url(match_url: str, session: Session) -> Optional[Integer]:
+    return session.query(Match).filter(Match.url == match_url).first()
+
+
+def get_match_id_by_url(match_url: str) -> Optional[Integer]:
+    cur_session = Session(get_engine())
+    if cur_session is None:
+        return None
+
+    ret = cur_session.query(Match).filter(Match.url == match_url).first()
+    cur_session.close()
+
+    if ret is None:
+        return None
+
+    return ret.id
+
+
+def get_upcoming_matches_in_datetime_interval(start_from: int, until_to: int, session: Session = None) -> List[Match]:
+    return session.query(Match)\
+        .filter(and_(start_from < Match.unix_time_utc_sec, Match.unix_time_utc_sec < until_to))\
+        .all()
 
 
 def update_match(match_id: Integer, props: Dict, session: Session = None):
@@ -114,10 +153,12 @@ def update_match(match_id: Integer, props: Dict, session: Session = None):
     if cur_session is None:
         return None
 
-    skin = get_match(match_id, cur_session)
+    skin = get_match(match_id)
     for key, value in props.items():
         setattr(skin, key, value)
 
     # created at the beginning of the function
     if not session:
         cur_session.commit()
+
+    cur_session.close()

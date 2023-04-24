@@ -1,26 +1,33 @@
+import datetime
 import logging
 from typing import Optional, List
 
 import schedule
 
-from hltv_upcoming_events_bot import hltv_parser, config
-from hltv_upcoming_events_bot.domain.match_stars import MatchStars
+import hltv_upcoming_events_bot.service.db as db_service
+from hltv_upcoming_events_bot import config, domain
+from hltv_upcoming_events_bot.service import hltv_parser
 
 _CACHED_MATCHES: Optional[List] = None
 
 
 def init():
-    if config.DEBUG:
-        schedule.every(3).minutes.do(_update_cache)
-    else:
-        schedule.every(3).hours.do(_update_cache)
-
-    # initial load of cache
-    _update_cache()
+    _setup_schedule()
 
 
-def get_upcoming_matches():
-    return _get_cache()
+def get_upcoming_matches() -> List[domain.Match]:
+    logging.info('Getting upcoming matches from database')
+
+    cur_time_utc = datetime.datetime.utcnow()
+    cur_time_utc_timestamp = round(cur_time_utc.timestamp())
+    tomorrow_same_time_utc = cur_time_utc + (
+        datetime.timedelta(days=1) if cur_time_utc.hour > 5 else datetime.timedelta())
+    tomorrow_noon_utc = datetime.datetime(year=tomorrow_same_time_utc.year, month=tomorrow_same_time_utc.month,
+                                          day=tomorrow_same_time_utc.day, hour=12)
+    tomorrow_noon_utc_timestamp = round(tomorrow_noon_utc.timestamp())
+
+    matches = db_service.get_upcoming_matches_in_datetime_interval(cur_time_utc_timestamp, tomorrow_noon_utc_timestamp)
+    return matches
 
 
 def get_upcoming_matches_str() -> str:
@@ -28,20 +35,20 @@ def get_upcoming_matches_str() -> str:
     match_str_list = list()
 
     # remove all unnecessary (non-target) matches to make it easier to apply
-    # the logic of tournament description (one for all matches or tournamet name per each match)
+    # the logic of tournament description (one for all matches or tournament name per each match)
     tournaments_names = set()
     target_matches = list()
     for match in matches:
-        russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
-        if match.stars != MatchStars.ZERO and len(russian_translations) > 0:
+        russian_translations = list(filter(lambda s: s.language == 'Russia', match.streamers))
+        if match.stars != domain.MatchStars.ZERO and len(russian_translations) > 0:
             target_matches.append(match)
             tournaments_names.add(match.tournament.name)
 
     for match in target_matches:
-        russian_translations = list(filter(lambda tr: tr.language.name == 'Russia', match.translations))
+        russian_translations = list(filter(lambda s: s.language == 'Russia', match.streamers))
 
         translations_str = ' '.join(
-            [f"<a href='{tr.url}'>🎥 {tr.streamer_name}</a>" for tr in russian_translations])
+            [f"<a href='{s.url}'>🎥 {s.name}</a>" for s in russian_translations])
 
         tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
 
@@ -58,20 +65,40 @@ def get_upcoming_matches_str() -> str:
     return msg
 
 
-def _get_cache():
-    global _CACHED_MATCHES
-    if not _CACHED_MATCHES:
-        _update_cache()
-    return _CACHED_MATCHES
+def _setup_schedule():
+    if config.DEBUG:
+        schedule.every(3).minutes.do(_do_job)
+    else:
+        schedule.every(3).hours.do(_do_job)
+
+    # initial load of cache
+    _do_job()
 
 
-def _update_cache():
-    global _CACHED_MATCHES
-    logging.info('Update cache')
+def _do_job():
+    logging.info("Getting the list of today's matches")
 
+    matches = _parse_upcoming_matches()
+    _add_matches_to_db(matches)
+
+
+def _parse_upcoming_matches() -> List[domain.Match]:
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
+    matches = list()
     try:
-        _CACHED_MATCHES = hltv_parser.get_upcoming_matches()
+        matches = hltv_parser.get_upcoming_matches()
     except Exception as ex:
-        logging.error(f'Exception while updating cache with upcoming matches: {ex}')
+        logging.error(f'Exception while updating cache with upcoming matches: failed to get upcoming matches: {ex}')
+
+    return matches
+
+
+def _add_matches_to_db(matches: List[domain.Match]):
+    for match in matches:
+        try:
+            for match_streamer in match.streamers:
+                db_service.add_streamer(match_streamer)
+            db_service.add_match(match)
+        except Exception as ex:
+            logging.error(f'Exception while updating cache with upcoming matches: failed to add match (url={match.url}): {ex}')

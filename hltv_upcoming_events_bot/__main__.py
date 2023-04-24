@@ -1,3 +1,6 @@
-from hltv_upcoming_events_bot import cli
+from hltv_upcoming_events_bot.cli.cli import init_app, cli
 
-cli.cli()
+# the very first call
+init_app()
+
+cli()
