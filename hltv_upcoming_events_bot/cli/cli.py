@@ -37,11 +37,12 @@ cli.add_command(bot)
 
 @bot.command()
 @click.option('-t', '--token', default=None, help='Bot token')
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
 @click.option('--pg-host', default=None, help='PostgreSQL server host')
 @click.option('--pg-port', default=None, help='PostgreSQL server port')
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
-def start(token: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+def start(token: str, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
     if token is not None:
         config.BOT_TOKEN = token
 
@@ -50,6 +51,9 @@ def start(token: str, pg_host: str, pg_port: str, pg_username: str, pg_password:
         click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
                    "'-t' / '--token' command line argument")
         sys.exit(1)
+
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
 
     if pg_host is not None:
         config.DB_PG_HOST = pg_host
@@ -90,11 +94,15 @@ cli.add_command(parser)
 
 
 @parser.command()
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
 @click.option('--pg-host', default=None, help='PostgreSQL server host')
 @click.option('--pg-port', default=None, help='PostgreSQL server port')
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
-def start(pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
     if pg_host is not None:
         config.DB_PG_HOST = pg_host
 
@@ -123,11 +131,15 @@ cli.add_command(admin)
 
 
 @admin.command()
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
 @click.option('--pg-host', default=None, help='PostgreSQL server host')
 @click.option('--pg-port', default=None, help='PostgreSQL server port')
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
-def users(pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+def users(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
     if pg_host is not None:
         config.DB_PG_HOST = pg_host
 
@@ -152,12 +164,16 @@ def users(pg_host: str, pg_port: str, pg_username: str, pg_password: str):
 
 
 @admin.command()
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
 @click.option('--pg-host', default=None, help='PostgreSQL server host')
 @click.option('--pg-port', default=None, help='PostgreSQL server port')
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
 @click.option('-n/--number', default=None)
-def recent(pg_host: str, pg_port: str, pg_username: str, pg_password: str, n: int):
+def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str, n: int):
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
     if pg_host is not None:
         config.DB_PG_HOST = pg_host
 
@@ -183,6 +199,46 @@ def recent(pg_host: str, pg_port: str, pg_username: str, pg_password: str, n: in
 
     print(f'\n'
           f'Total: {idx - 1} users')
+
+
+@click.group()
+def db():
+    pass
+
+
+@db.command()
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def upgrade(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    import alembic.config
+    import alembic.command
+
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
+    cur_file_dir = os.path.dirname(os.path.realpath(__file__))
+    project_root_dir = os.path.abspath(os.path.join(cur_file_dir, '..', '..'))
+    alembic_config = alembic.config.Config(os.path.join(project_root_dir, 'alembic.ini'))
+    alembic_config.set_main_option('script_location', os.path.join(project_root_dir, 'alembic'))
+    alembic.command.upgrade(alembic_config, 'head')
+
+
+cli.add_command(db)
 
 
 def init_app():
