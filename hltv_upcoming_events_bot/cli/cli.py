@@ -51,7 +51,7 @@ def start(token: str):
     continuous_thread = ScheduleThread()
     continuous_thread.start()
 
-    matches_service.init()
+    # matches_service.init()
     tg_notifier_service.init(bot_impl.send_message)
 
     db.init_db(config.DB_FILENAME)
@@ -64,6 +64,32 @@ def start(token: str):
     except Exception as ex:
         logging.critical(f'Exiting application: {ex}')
         sys.exit(1)
+
+
+@click.group()
+def parser():
+    pass
+
+
+cli.add_command(parser)
+
+
+@parser.command()
+def start():
+    continuous_thread = ScheduleThread()
+    continuous_thread.start()
+
+    db.init_db(config.DB_FILENAME)
+    matches_service.init()
+
+    # try:
+    #     bot_impl.start(token)
+    # except KeyboardInterrupt:
+    #     logging.info('Keyboard interrupt. Successfully exiting application')
+    #     sys.exit(0)
+    # except Exception as ex:
+    #     logging.critical(f'Exiting application: {ex}')
+    #     sys.exit(1)
 
 
 @click.group()

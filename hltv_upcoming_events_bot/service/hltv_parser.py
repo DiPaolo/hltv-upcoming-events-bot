@@ -3,21 +3,13 @@ import logging
 import re
 from typing import List, Optional
 
+import hltv_upcoming_events_bot.domain as domain
 from hltv_upcoming_events_bot import config
-import hltv_upcoming_events_bot.domain.match_state
-from hltv_upcoming_events_bot.domain.language import Language
-from hltv_upcoming_events_bot.domain.match import Match
-from hltv_upcoming_events_bot.domain.team import Team
-from hltv_upcoming_events_bot.domain.tournament import Tournament
-from hltv_upcoming_events_bot.domain.match_stars import MatchStars
-from hltv_upcoming_events_bot.domain.match_state import MatchState
-
-# delays in sec with weight
-from hltv_upcoming_events_bot.domain.translation import Translation
+from hltv_upcoming_events_bot.domain.streamer import Streamer
 from pywebparser.pywebparser import Parser
 
 
-def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) -> Optional[Match]:
+def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) -> Optional[domain.Match]:
     parser.goto(url)
 
     tournament_name_elem = parser.find_element("//div[@class='timeAndEvent']/div[contains(@class, 'event')]/a")
@@ -32,7 +24,7 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
     # get translations
     #
 
-    translations = list()
+    streamers = list()
 
     # some elements can be hidden, but that's not a problem as long as
     # they contain 'stream-box' property anyway
@@ -58,13 +50,15 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
             # used for YouTube translations)
             url = stream_name_elem.get_attribute('data-stream-embed')
 
-        translations.append(Translation(streamer_name, Language(country), url))
+        streamers.append(Streamer(name=streamer_name, language=country, url=url))
 
-    return Match(Team(''), Team(''), datetime.datetime.utcnow(), MatchStars.ZERO, Tournament(url=tournament_url),
-                 MatchState.UNKNOWN, '', translations=translations)
+    match = domain.Match(domain.Team(''), domain.Team(''), datetime.datetime.utcnow(), domain.MatchStars.ZERO,
+                         domain.Tournament(url=tournament_url), domain.MatchState.UNKNOWN, '', streamers=streamers)
+
+    return match
 
 
-def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[Tournament]:
+def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.Tournament]:
     parser.goto(url)
 
     name_elem = parser.find_element("//h1[@class='event-hub-title']")
@@ -79,10 +73,10 @@ def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[Tourname
         logging.error(f"failed to parse tournament page: failed to parse URL for getting HLTV ID")
         return None
 
-    return Tournament(name, url, int(hltv_id.groups()[0]))
+    return domain.Tournament(name, url, int(hltv_id.groups()[0]))
 
 
-def get_upcoming_matches(parser: Parser = None) -> List[Match]:
+def get_upcoming_matches(parser: Parser = None) -> List[domain.Match]:
     out = list()
 
     if not parser:
@@ -92,7 +86,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
 
     match_elem_list = parser.find_elements("//h1[contains(@class, 'todaysMatches')]/following-sibling::div/a")
 
-    # parse each match
+    # parse every match
     for match_elem in match_elem_list:
         team1_elem = match_elem.find_element(".//div[@class='teamrow'][1]/span")
         team2_elem = match_elem.find_element(".//div[@class='teamrow'][2]/span")
@@ -100,7 +94,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
             placeholder_elem = match_elem.find_element("./div[@class='placeholderrow']")
             if not placeholder_elem:
                 logging.error(
-                    f"failed to parse nor team1 or team2 row elements or placeholderrow element: no such element(s)")
+                    f"failed to parse nor team1 or team2 row elements or placeholder row element (url={parser.url}): no such element(s)")
             continue
 
         div_elem = match_elem.find_element(".//div")
@@ -108,7 +102,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
 
         time_elem = match_elem.find_element(".//div/div[@class='middleExtra']")
         if not time_elem:
-            # match already in progress
+            # match is already in progress
             continue
 
         # time is stored in microseconds
@@ -116,16 +110,18 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
 
         match_url = match_elem.get_attribute('href')
 
-        # tournaments will be parsed later as ling as we need to stay at the current page to
+        #
+        # TOURNAMENTS + STREAMERS
+        #
+        # tournaments & translations will be parsed later as long as we need to stay at the current page to
         # iterate over all upcoming matches
+        #
+        out.append(domain.Match(domain.Team(team1_elem.text), domain.Team(team2_elem.text),
+                                datetime.datetime.fromtimestamp(time_utc),
+                                domain.MatchStars(stars_count),
+                                domain.Tournament(), domain.MatchState.PLANNED, match_url, list()))
 
-        out.append(Match(Team(team1_elem.text), Team(team2_elem.text),
-                         datetime.datetime.fromtimestamp(time_utc),
-                         hltv_upcoming_events_bot.domain.match_stars.MatchStars(stars_count),
-                         Tournament(), hltv_upcoming_events_bot.domain.match_state.MatchState.PLANNED, match_url,
-                         list()))
-
-    # filling tournaments
+    # now, fill in tournaments + streamers
     for match in out:
         try:
             parsed_match = _parse_match_page_and_get_tournament_url(match.url, parser)
@@ -133,7 +129,7 @@ def get_upcoming_matches(parser: Parser = None) -> List[Match]:
                 continue
 
             match.tournament = _parse_tournament_page(parsed_match.tournament.url, parser)
-            match.translations = parsed_match.translations
+            match.streamers = parsed_match.streamers
         except Exception as ex:
             logging.error(ex)
             out.remove(match)

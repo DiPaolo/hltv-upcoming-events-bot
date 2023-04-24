@@ -2,11 +2,11 @@ import datetime
 from dataclasses import dataclass
 from typing import List
 
-from hltv_upcoming_events_bot.domain.match_stars import MatchStars
-from hltv_upcoming_events_bot.domain.match_state import MatchState
-from hltv_upcoming_events_bot.domain.team import Team
-from hltv_upcoming_events_bot.domain.tournament import Tournament
-from hltv_upcoming_events_bot.domain.translation import Translation
+from .match_stars import MatchStars
+from .match_state import MatchState
+from .streamer import Streamer
+from .team import Team
+from .tournament import Tournament
 
 
 @dataclass
@@ -18,4 +18,4 @@ class Match(object):
     tournament: Tournament
     state: MatchState
     url: str
-    translations: List[Translation]
+    streamers: List[Streamer]

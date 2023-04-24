@@ -47,11 +47,11 @@ def add_match_from_domain_object(match: hltv_upcoming_events_bot.domain.match.Ma
     state = hltv_upcoming_events_bot.db.match_state.get_match_state_by_name(state_name)
     state_id = state.id if state else hltv_upcoming_events_bot.db.match_state.add_match_state(state_name)
 
-    tournament = hltv_upcoming_events_bot.db.tournament.get_tournament_by_name(match.tournament.name)
+    tournament = hltv_upcoming_events_bot.db.tournament.get_tournament_id_by_name(match.tournament.name)
     if tournament is None:
         tournament = hltv_upcoming_events_bot.db.tournament.add_tournament_from_domain_object(match.tournament)
         if tournament is None:
-            tournament = hltv_upcoming_events_bot.db.tournament.get_unknown_tournament()
+            tournament = hltv_upcoming_events_bot.db.tournament.get_unknown_tournament_id()
             if tournament is None:
                 logging.error(
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
