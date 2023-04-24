@@ -17,4 +17,3 @@ else:
     DB_PG_PORT = '5432'
     DB_PG_USER = 'postgres'
     DB_PG_PWD = '123456'
-    # DB_PG_DATABASE_NAME = 'hltv_events'

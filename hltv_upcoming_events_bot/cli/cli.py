@@ -21,7 +21,6 @@ from hltv_upcoming_events_bot.db.user_request import get_recent_user_requests
 def cli(debug: bool):
     # apply env variables first;
     # command line parameters have higher priority, so it goes after
-
     _apply_env_variables_to_config()
 
     if debug is not None:
@@ -38,7 +37,11 @@ cli.add_command(bot)
 
 @bot.command()
 @click.option('-t', '--token', default=None, help='Bot token')
-def start(token: str):
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def start(token: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
     if token is not None:
         config.BOT_TOKEN = token
 
@@ -47,6 +50,18 @@ def start(token: str):
         click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
                    "'-t' / '--token' command line argument")
         sys.exit(1)
+
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
 
     continuous_thread = ScheduleThread()
     continuous_thread.start()
@@ -75,21 +90,28 @@ cli.add_command(parser)
 
 
 @parser.command()
-def start():
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def start(pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
     continuous_thread = ScheduleThread()
     continuous_thread.start()
 
     db.init_db(config.DB_FILENAME)
     matches_service.init()
-
-    # try:
-    #     bot_impl.start(token)
-    # except KeyboardInterrupt:
-    #     logging.info('Keyboard interrupt. Successfully exiting application')
-    #     sys.exit(0)
-    # except Exception as ex:
-    #     logging.critical(f'Exiting application: {ex}')
-    #     sys.exit(1)
 
 
 @click.group()
@@ -101,12 +123,27 @@ cli.add_command(admin)
 
 
 @admin.command()
-def users():
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def users(pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
     db.init_db(config.DB_FILENAME)
 
-    users = get_users()
     idx = 1
-    for u in users:
+    for u in get_users():
         print(f'{idx}:\t{u.username} ({u.telegram_id})')
         idx += 1
 
@@ -115,8 +152,24 @@ def users():
 
 
 @admin.command()
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
 @click.option('-n/--number', default=None)
-def recent(n: int):
+def recent(pg_host: str, pg_port: str, pg_username: str, pg_password: str, n: int):
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
     if n is None:
         n = 10
 
@@ -148,15 +201,3 @@ def _apply_env_variables_to_config():
     env_token_val = os.environ.get('DP_TG_BOT_TOKEN')
     if env_token_val:
         config.BOT_TOKEN = env_token_val
-
-    # env_check_ssl_cert = os.environ.get('DP_TG_BOT_CHECK_SSL_CERT')
-    # if env_check_ssl_cert:
-    #     config.CHECK_SSL_CERT = _get_env_val_as_bool(env_check_ssl_cert)
-    #
-    # dadata_token = os.environ.get('DP_TG_BOT_DADATA_TOKEN')
-    # if dadata_token:
-    #     config.DADATA_TOKEN = dadata_token
-    #
-    # dadata_secret = os.environ.get('DP_TG_BOT_DADATA_SECRET')
-    # if dadata_secret:
-    #     config.DADATA_SECRET = dadata_secret
