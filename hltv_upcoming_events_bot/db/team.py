@@ -4,7 +4,6 @@ from typing import Optional, Dict
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
-import hltv_upcoming_events_bot.domain as domain
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db.common import Base, get_engine
 
