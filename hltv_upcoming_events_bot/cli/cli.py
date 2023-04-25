@@ -7,7 +7,7 @@ import sys
 import click as click
 
 import hltv_upcoming_events_bot.bot as bot_impl
-import hltv_upcoming_events_bot.db as db
+import hltv_upcoming_events_bot.db as hltv_db
 import hltv_upcoming_events_bot.service.matches as matches_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
@@ -73,7 +73,7 @@ def start(token: str, pg_database: str, pg_host: str, pg_port: str, pg_username:
     # matches_service.init()
     tg_notifier_service.init(bot_impl.send_message)
 
-    db.init_db(config.DB_FILENAME)
+    hltv_db.init_db(config.DB_FILENAME)
 
     try:
         bot_impl.start(config.BOT_TOKEN)
@@ -118,7 +118,7 @@ def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
     continuous_thread = ScheduleThread()
     continuous_thread.start()
 
-    db.init_db(config.DB_FILENAME)
+    hltv_db.init_db(config.DB_FILENAME)
     matches_service.init()
 
 
@@ -152,7 +152,7 @@ def users(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
     if pg_password is not None:
         config.DB_PG_PWD = pg_password
 
-    db.init_db(config.DB_FILENAME)
+    hltv_db.init_db(config.DB_FILENAME)
 
     idx = 1
     for u in get_users():
@@ -189,7 +189,7 @@ def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pa
     if n is None:
         n = 10
 
-    db.init_db(config.DB_FILENAME)
+    hltv_db.init_db(config.DB_FILENAME)
 
     requests = get_recent_user_requests(n)
     idx = 1
