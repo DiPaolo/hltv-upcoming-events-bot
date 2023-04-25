@@ -69,7 +69,7 @@ def _setup_schedule():
     if config.DEBUG:
         schedule.every(3).minutes.do(_do_job)
     else:
-        schedule.every(3).hours.do(_do_job)
+        schedule.every(4).to(6).hours.do(_do_job)
 
     # initial load of cache
     _do_job()
