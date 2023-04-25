@@ -52,7 +52,10 @@ def get_upcoming_matches_str() -> str:
 
         tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
 
-        match_str = f"{match.time_utc.hour:02}:{match.time_utc.minute:02} " \
+        # use UTC+7 timezone
+        user_time = match.time_utc.astimezone(datetime.timezone(datetime.timedelta(hours=7)))
+
+        match_str = f"{user_time.hour:02}:{user_time.minute:02} " \
                     f"{'⭐' * match.stars.value}\t{match.team1.name} - {match.team2.name} " + \
                     f"{tournament_name_str} {translations_str}"
         match_str_list.append(match_str)
@@ -101,4 +104,5 @@ def _add_matches_to_db(matches: List[domain.Match]):
                 db_service.add_streamer(match_streamer)
             db_service.add_match(match)
         except Exception as ex:
-            logging.error(f'Exception while updating cache with upcoming matches: failed to add match (url={match.url}): {ex}')
+            logging.error(
+                f'Exception while updating cache with upcoming matches: failed to add match (url={match.url}): {ex}')
