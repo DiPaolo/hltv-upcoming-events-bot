@@ -21,7 +21,7 @@ def get_upcoming_matches() -> List[domain.Match]:
     cur_time_utc = datetime.datetime.utcnow()
     cur_time_utc_timestamp = round(cur_time_utc.timestamp())
     tomorrow_same_time_utc = cur_time_utc + (
-        datetime.timedelta(days=1) if cur_time_utc.hour > 5 else datetime.timedelta())
+        datetime.timedelta(days=1) if cur_time_utc.hour >= 1 else datetime.timedelta())
     tomorrow_noon_utc = datetime.datetime(year=tomorrow_same_time_utc.year, month=tomorrow_same_time_utc.month,
                                           day=tomorrow_same_time_utc.day, hour=12)
     tomorrow_noon_utc_timestamp = round(tomorrow_noon_utc.timestamp())
