@@ -9,7 +9,6 @@ import hltv_upcoming_events_bot.db as db
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db.common import Base, get_engine
 from hltv_upcoming_events_bot.db.match_stars import MatchStars
-from hltv_upcoming_events_bot.db.streamer import Streamer
 from hltv_upcoming_events_bot.db.team import Team, add_team, get_team
 
 
@@ -23,7 +22,6 @@ class Match(Base):
     state_id = Column(Integer, ForeignKey("match_state.id"))
     tournament_id = Column(Integer, ForeignKey('tournament.id'))
     url = Column(String, nullable=False, unique=True)
-    streamers = relationship('Streamer', backref='match')
 
     def __repr__(self):
         return f"Match(id={self.id!r})"
@@ -39,8 +37,7 @@ class Match(Base):
                                   stars=self.stars,
                                   tournament=tournament.to_domain_object(),
                                   state=match_state.to_domain_object(),
-                                  url=self.url,
-                                  streamers=[s.to_domain_object() for s in self.streamers])
+                                  url=self.url)
 
 
 def add_match_from_domain_object(match: domain.match.Match, session: Session) -> Optional[Match]:
@@ -64,23 +61,15 @@ def add_match_from_domain_object(match: domain.match.Match, session: Session) ->
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
                 return None
 
-    streamers = list()
-    for streamer in match.streamers:
-        db_streamer = db.get_streamer_by_url(streamer.url, session)
-        if db_streamer is None:
-            logging.error(f'Streamer (name={streamer.name}, language={streamer.language}) has no URL')
-            continue
-        streamers.append(db_streamer)
-
     match = add_match(team1_id, team2_id,
                       int(datetime.datetime.timestamp(match.time_utc)), MatchStars.from_domain_object(match.stars),
-                      tournament_id, state_id, match.url, streamers, session)
+                      tournament_id, state_id, match.url, session)
 
     return match
 
 
 def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_stars: MatchStars, tournament_id: Integer,
-              state_id: Integer, url: str, streamers: List[Streamer], session: Session) -> Optional[Integer]:
+              state_id: Integer, url: str, session: Session) -> Optional[Integer]:
     team1 = get_team(team1_id, session)
     if team1 is None:
         logging.error(f'failed to add match because team1 (id={team1_id}) is not found')
@@ -97,10 +86,6 @@ def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_st
                       state_id=state_id, tournament_id=tournament_id, url=url)
         try:
             session.add(match)
-            session.flush()
-            session.refresh(match)
-            for s in streamers:
-                s.match_id = match.id
             session.commit()
             logging.info(
                 f"Match added: team1 (id={team1.id}, name={team1.name}) vs team2 (id={team2.id}, name={team2.name}) "
@@ -128,17 +113,10 @@ def get_match_by_url(match_url: str, session: Session) -> Optional[Integer]:
     return session.query(Match).filter(Match.url == match_url).first()
 
 
-def get_match_id_by_url(match_url: str) -> Optional[Integer]:
-    cur_session = Session(get_engine())
-    if cur_session is None:
-        return None
-
-    ret = cur_session.query(Match).filter(Match.url == match_url).first()
-    cur_session.close()
-
+def get_match_id_by_url(match_url: str, session: Session) -> Optional[Integer]:
+    ret = session.query(Match).filter(Match.url == match_url).first()
     if ret is None:
         return None
-
     return ret.id
 
 

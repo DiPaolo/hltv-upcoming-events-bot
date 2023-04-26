@@ -1,11 +1,11 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.domain as domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
 
 
 class Streamer(Base):
@@ -14,7 +14,6 @@ class Streamer(Base):
     name = Column(String, nullable=False)
     language = Column(String, nullable=False)
     url = Column(String, nullable=False, unique=True)
-    match_id = Column(Integer, ForeignKey('match.id'))
 
     def __repr__(self):
         return f"Streamer(id={self.id!r}, name={self.name!r}, language={self.language!r})"
@@ -42,6 +41,10 @@ def add_streamer(name: str, language: str, url: str, session: Session) -> Option
     except Exception as e:
         logging.error(f"Failed to add streamer '{name}' with language '{language}': {e}")
         return None
+
+
+def get_streamer(streamer_id: Integer, session: Session) -> Optional[Streamer]:
+    return session.get(Streamer, streamer_id)
 
 
 def get_streamer_by_url(url: str, session: Session) -> Optional[Streamer]:

@@ -15,7 +15,7 @@ def init():
     _setup_schedule()
 
 
-def get_upcoming_matches() -> List[domain.Match]:
+def get_upcoming_translations() -> List[domain.Translation]:
     logging.info('Getting upcoming matches from database')
 
     cur_time_utc = datetime.datetime.utcnow()
@@ -26,31 +26,38 @@ def get_upcoming_matches() -> List[domain.Match]:
                                           day=tomorrow_same_time_utc.day, hour=12)
     tomorrow_noon_utc_timestamp = round(tomorrow_noon_utc.timestamp())
 
-    matches = db_service.get_upcoming_matches_in_datetime_interval(cur_time_utc_timestamp, tomorrow_noon_utc_timestamp)
-    return matches
+    translations = db_service.get_translations_in_period(cur_time_utc_timestamp, tomorrow_noon_utc_timestamp)
+    return translations
 
 
 def get_upcoming_matches_str() -> str:
-    matches = get_upcoming_matches()
+    translations = get_upcoming_translations()
     match_str_list = list()
 
-    # remove all unnecessary (non-target) matches to make it easier to apply
-    # the logic of tournament description (one for all matches or tournament name per each match)
+    # the list of translations that we've got is not grouped;
+    # so we have to group translations by matches (one match -> zero, one, or more streamers)
+
+    # match's url is used as a key in the dict;
+    # value is a tuple of match + list of streamers
+    # will be filtered (non-target matches are out of the dict)
+    matches = dict()
+
     tournaments_names = set()
-    target_matches = list()
-    for match in matches:
-        russian_translations = list(filter(lambda s: s.language == 'Russia', match.streamers))
-        if match.stars.value != domain.MatchStars.ZERO.value and len(russian_translations) > 0:
-            target_matches.append(match)
-            tournaments_names.add(match.tournament.name)
+    for trans in translations:
+        is_target_translation = trans.streamer.language == 'Russia'
+        if trans.match.stars.value == domain.MatchStars.ZERO.value or not is_target_translation:
+            continue
 
-    for match in target_matches:
-        russian_translations = list(filter(lambda s: s.language == 'Russia', match.streamers))
+        tournaments_names.add(trans.match.tournament.name)
 
-        translations_str = ' '.join(
-            [f"<a href='{s.url}'>🎥 {s.name}</a>" for s in russian_translations])
+        if trans.match.url not in matches:
+            matches[trans.match.url] = (trans.match, [trans.streamer])
+        else:
+            matches[trans.match.url][1].append(trans.streamer)
 
-        tournament_name_str = f"({match.tournament.name})" if len(tournaments_names) != 1 else ''
+    for match, streamers in matches.values():
+        translations_str = ' '.join([f"<a href='{s.url}'>🎥 {s.name}</a>" for s in streamers])
+        tournament_name_str = f"(<b>{match.tournament.name}</b>)" if len(tournaments_names) != 1 else ''
 
         # use UTC+7 timezone
         user_time = match.time_utc.astimezone(datetime.timezone(datetime.timedelta(hours=7)))
@@ -100,9 +107,10 @@ def _parse_upcoming_matches() -> List[domain.Match]:
 def _add_matches_to_db(matches: List[domain.Match]):
     for match in matches:
         try:
+            db_service.add_match(match)
             for match_streamer in match.streamers:
                 db_service.add_streamer(match_streamer)
-            db_service.add_match(match)
+                db_service.add_translation(match, match_streamer)
         except Exception as ex:
             logging.error(
                 f'Exception while updating cache with upcoming matches: failed to add match (url={match.url}): {ex}')

@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import Column, Integer, ForeignKey, and_
 from sqlalchemy.orm import Session
@@ -46,6 +46,13 @@ def add_translation(match_id: Integer, streamer_id: Integer, session: Session) -
         return None
 
 
+def get_translations_by_match_id(match_id: Integer, session: Session) -> List[Translation]:
+    return session\
+        .query(Translation)\
+        .filter(Translation.match_id == match_id)\
+        .all()
+
+
 def get_translation(match_id: Integer, streamer_id: Integer, session: Session) -> Optional[Integer]:
     translation = session\
         .query(Translation)\
@@ -56,3 +63,4 @@ def get_translation(match_id: Integer, streamer_id: Integer, session: Session) -
         return None
 
     return translation.id
+

@@ -18,4 +18,3 @@ class Match(object):
     tournament: Tournament
     state: MatchState
     url: str
-    streamers: List[Streamer]
