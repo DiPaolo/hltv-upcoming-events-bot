@@ -22,15 +22,21 @@ def add_translation(match: domain.Match, streamer: domain.Streamer):
     with Session(get_engine()) as session:
         match_id = db.get_match_id_by_url(match.url, session)
         if match_id is None:
-            raise Exception(
-                f'Failed to add translation (match_url={match.url}, streamer_name={streamer.name}, '
-                f'streamer_url={streamer.url}): Failed to get match ID (match_url={match.url})')
+            match = db.add_match_from_domain_object(match, session)
+            match_id = match.id
+            if match_id is None:
+                raise Exception(
+                    f'Failed to add translation (match_url={match.url}, streamer_name={streamer.name}, '
+                    f'streamer_url={streamer.url}): Failed to get match ID (match_url={match.url})')
 
         streamer_id = db.get_streamer_id_by_url(streamer.url, session)
         if streamer_id is None:
-            raise Exception(
-                f'Failed to add translation (match_url={match.url}, streamer_name={streamer.name}, '
-                f'streamer_url={streamer.url}): Failed to get streamer ID (streamer_url={streamer.url})')
+            streamer = db.add_streamer_from_domain_object(streamer, session)
+            streamer_id = streamer.id
+            if streamer_id is None:
+                raise Exception(
+                    f'Failed to add translation (match_url={match.url}, streamer_name={streamer.name}, '
+                    f'streamer_url={streamer.url}): Failed to get streamer ID (streamer_url={streamer.url})')
 
         db.add_translation(match_id, streamer_id, session)
 

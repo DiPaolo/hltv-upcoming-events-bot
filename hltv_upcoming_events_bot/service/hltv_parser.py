@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import hltv_upcoming_events_bot.domain as domain
 from hltv_upcoming_events_bot import config
@@ -9,7 +9,7 @@ from hltv_upcoming_events_bot.domain.streamer import Streamer
 from pywebparser.pywebparser import Parser
 
 
-def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) -> Optional[domain.Match]:
+def _parse_match_page(url: str, parser: Parser = None) -> Optional[Tuple[domain.Match, List[domain.Streamer]]]:
     parser.goto(url)
 
     tournament_name_elem = parser.find_element("//div[@class='timeAndEvent']/div[contains(@class, 'event')]/a")
@@ -53,9 +53,9 @@ def _parse_match_page_and_get_tournament_url(url: str, parser: Parser = None) ->
         streamers.append(Streamer(name=streamer_name, language=country, url=url))
 
     match = domain.Match(domain.Team(''), domain.Team(''), datetime.datetime.utcnow(), domain.MatchStars.ZERO,
-                         domain.Tournament(url=tournament_url), domain.MatchState.UNKNOWN, '', streamers=streamers)
+                         domain.Tournament(url=tournament_url), domain.MatchState.UNKNOWN, '')
 
-    return match
+    return match, streamers
 
 
 def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.Tournament]:
@@ -76,15 +76,15 @@ def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.T
     return domain.Tournament(name, url, int(hltv_id.groups()[0]))
 
 
-def get_upcoming_matches(parser: Parser = None) -> List[domain.Match]:
-    out = list()
-
+def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]:
     if not parser:
         parser = Parser(is_fast=False, use_cloudflare_bypass=True)
 
     parser.goto(config.BASE_URL)
 
     match_elem_list = parser.find_elements("//h1[contains(@class, 'todaysMatches')]/following-sibling::div/a")
+
+    matches = list()
 
     # parse every match
     for match_elem in match_elem_list:
@@ -116,23 +116,28 @@ def get_upcoming_matches(parser: Parser = None) -> List[domain.Match]:
         # tournaments & translations will be parsed later as long as we need to stay at the current page to
         # iterate over all upcoming matches
         #
-        out.append(domain.Match(domain.Team(team1_elem.text), domain.Team(team2_elem.text),
-                                datetime.datetime.fromtimestamp(time_utc),
-                                domain.MatchStars(stars_count),
-                                domain.Tournament(), domain.MatchState.PLANNED, match_url, list()))
+        match = domain.Match(domain.Team(team1_elem.text), domain.Team(team2_elem.text),
+                             datetime.datetime.fromtimestamp(time_utc),
+                             domain.MatchStars(stars_count),
+                             domain.Tournament(), domain.MatchState.PLANNED, match_url)
+        matches.append(match)
 
     # now, fill in tournaments + streamers
-    for match in out:
+    out = list()
+    for match in matches:
         try:
-            parsed_match = _parse_match_page_and_get_tournament_url(match.url, parser)
-            if not match:
+            parsed_data = _parse_match_page(match.url, parser)
+            if parsed_data is None:
                 continue
 
+            parsed_match = parsed_data[0]
+            parsed_streamers = parsed_data[1]
+
             match.tournament = _parse_tournament_page(parsed_match.tournament.url, parser)
-            match.streamers = parsed_match.streamers
+            for streamer in parsed_streamers:
+                out.append(domain.Translation(match=match, streamer=streamer))
         except Exception as ex:
-            logging.error(ex)
-            out.remove(match)
+            logging.error(f'Unexpected error during fillin up upcoming translation list: {ex}')
             continue
 
     return out

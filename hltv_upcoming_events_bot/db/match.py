@@ -69,7 +69,7 @@ def add_match_from_domain_object(match: domain.match.Match, session: Session) ->
 
 
 def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_stars: MatchStars, tournament_id: Integer,
-              state_id: Integer, url: str, session: Session) -> Optional[Integer]:
+              state_id: Integer, url: str, session: Session) -> Optional[Match]:
     team1 = get_team(team1_id, session)
     if team1 is None:
         logging.error(f'failed to add match because team1 (id={team1_id}) is not found')
@@ -90,7 +90,7 @@ def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_st
             logging.info(
                 f"Match added: team1 (id={team1.id}, name={team1.name}) vs team2 (id={team2.id}, name={team2.name}) "
                 f"with the status (id={state_id}) at {str(datetime.datetime.fromtimestamp(match.unix_time_utc_sec))}")
-            return match.id
+            return match
         except Exception as e:
             logging.error(f"Failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
                           f"{datetime.datetime.fromtimestamp(unix_time_sec)}: {e}")
@@ -109,7 +109,7 @@ def get_match(match_id: Integer) -> Optional[Match]:
     return ret
 
 
-def get_match_by_url(match_url: str, session: Session) -> Optional[Integer]:
+def get_match_by_url(match_url: str, session: Session) -> Optional[Match]:
     return session.query(Match).filter(Match.url == match_url).first()
 
 

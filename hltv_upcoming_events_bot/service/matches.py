@@ -88,29 +88,27 @@ def _setup_schedule():
 def _do_job():
     logging.info("Getting the list of today's matches")
 
-    matches = _parse_upcoming_matches()
-    _add_matches_to_db(matches)
+    translations = _parse_upcoming_translations()
+    _add_translations_to_db(translations)
 
 
-def _parse_upcoming_matches() -> List[domain.Match]:
+def _parse_upcoming_translations() -> List[domain.Translation]:
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
-    matches = list()
+    translations = list()
     try:
-        matches = hltv_parser.get_upcoming_matches()
+        translations = hltv_parser.get_upcoming_translations()
     except Exception as ex:
         logging.error(f'Exception while updating cache with upcoming matches: failed to get upcoming matches: {ex}')
 
-    return matches
+    return translations
 
 
-def _add_matches_to_db(matches: List[domain.Match]):
-    for match in matches:
+def _add_translations_to_db(translations: List[domain.Translation]):
+    for trans in translations:
         try:
-            db_service.add_match(match)
-            for match_streamer in match.streamers:
-                db_service.add_streamer(match_streamer)
-                db_service.add_translation(match, match_streamer)
+            db_service.add_translation(trans.match, trans.streamer)
         except Exception as ex:
             logging.error(
-                f'Exception while updating cache with upcoming matches: failed to add match (url={match.url}): {ex}')
+                f'Exception while updating cache with upcoming matches: failed to add translation '
+                f'(match_url={trans.match.url}, streamer_url={trans.streamer.url}): {ex}')
