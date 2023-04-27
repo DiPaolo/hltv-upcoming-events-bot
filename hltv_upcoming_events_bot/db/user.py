@@ -54,6 +54,10 @@ def add_user(telegram_id: int, username: str, first_name: str, last_name: str, i
 def get_user(user_id: Integer, session: Session) -> Optional[User]:
     return session.get(User, user_id)
 
+def get_user_by_telegram_id(telegram_id: int, session: Session = None) -> Optional[User]:
+    cur_session = session if session else Session(get_engine())
+    if cur_session is None:
+        return None
 
 def get_user_by_telegram_id(telegram_id: int, session: Session) -> Optional[User]:
     try:

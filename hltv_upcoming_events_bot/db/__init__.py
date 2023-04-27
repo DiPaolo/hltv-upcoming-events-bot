@@ -15,3 +15,6 @@ from .translation import add_translation, get_translations_by_match_id
 from .user import add_user, get_user_by_telegram_id, get_user, get_users
 from .user_request import add_user_request, get_recent_user_requests
 
+from .user import add_user, get_user_by_telegram_id, get_user
+from .user_request import add_user_request
+from .user_timezone import add_user_timezone
