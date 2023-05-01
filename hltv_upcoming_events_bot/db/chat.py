@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Dict, List
 
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String, BigInteger
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,7 @@ def get_chat(chat_id: Integer, session: Session) -> Optional[Chat]:
     return session.get(Chat, chat_id)
 
 
-def get_chat_by_telegram_id(telegram_id: Integer, session: Session) -> Optional[Chat]:
+def get_chat_by_telegram_id(telegram_id: int, session: Session) -> Optional[Chat]:
     try:
         return session.query(Chat).filter(Chat.telegram_id == telegram_id).one()
     except NoResultFound:
