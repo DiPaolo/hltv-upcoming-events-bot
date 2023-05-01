@@ -1,3 +1,5 @@
+import logging
+from enum import Enum
 from typing import List
 
 from sqlalchemy import and_
@@ -5,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import db
 from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot.db import RetCode
 from hltv_upcoming_events_bot.db.common import get_engine
+
 
 
 def add_match(match: domain.Match):
@@ -41,18 +45,36 @@ def add_translation(match: domain.Match, streamer: domain.Streamer):
         db.add_translation(match_id, streamer_id, session)
 
 
-def subscribe_user_by_telegram_id(tg_id: int):
+def subscribe_chat_by_telegram_id(tg_id: int) -> RetCode:
     with Session(get_engine()) as session:
-        user = db.get_user_by_telegram_id(tg_id, session)
-        if user is None:
-            return
-        db.add_subscriber_from_domain_object(user, session)
+        subs = db.get_subscriber_by_telegram_id(tg_id, session)
+        if subs is not None:
+            return RetCode.ALREADY_EXIST
+
+        chat = db.get_chat_by_telegram_id(tg_id, session)
+        if chat is None:
+            logging.error(f'failed to subscribe user/chat: no such chat (telegram_id={tg_id}) in DB')
+            return RetCode.ERROR
+
+        ret = db.add_subscriber_from_domain_object(chat, session)
+        if ret is None:
+            return RetCode.ERROR
+
+        return RetCode.OK
 
 
-def unsubscribe_user_by_telegram_id(tg_id):
+def unsubscribe_chat_by_telegram_id(tg_id) -> RetCode:
     with Session(get_engine()) as session:
-        db_subscriber = db.get_user_by_telegram_id(tg_id, session)
-        db.delete_subscriber_by_id(db_subscriber.id, session)
+        # db_chat = db.get_chat_by_telegram_id(tg_id, session)
+        # if db_chat is None:
+        #     logging.error(f'failed to unsubscribe user/chat (telegram_id={tg_id}): no appropriate chat in DB')
+        #     return RetCode.ERROR
+
+        db_subscriber = db.get_subscriber_by_telegram_id(tg_id, session)
+        if db_subscriber is None:
+            return RetCode.NOT_EXIST
+
+        return db.delete_subscriber_by_id(db_subscriber.id, session)
 
 
 def get_subscribers() -> List[domain.User]:

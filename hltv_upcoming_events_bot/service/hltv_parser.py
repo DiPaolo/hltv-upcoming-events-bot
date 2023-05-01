@@ -137,7 +137,7 @@ def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]
             for streamer in parsed_streamers:
                 out.append(domain.Translation(match=match, streamer=streamer))
         except Exception as ex:
-            logging.error(f'Unexpected error during fillin up upcoming translation list: {ex}')
+            logging.error(f'Unexpected error during filling up upcoming translation list: {ex}')
             continue
 
     return out

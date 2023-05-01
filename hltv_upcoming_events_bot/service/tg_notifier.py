@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 
 import schedule
 
@@ -7,6 +8,13 @@ from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
 _SEND_MESSAGE_FUNC = None
+
+
+class RetCode(Enum):
+    OK = 1
+    ERROR = 2
+    NOT_EXIST = 3
+    ALREADY_EXIST = 4
 
 
 def init(send_message_func):
@@ -20,12 +28,30 @@ def init(send_message_func):
     _SEND_MESSAGE_FUNC = send_message_func
 
 
-def add_subscriber(tg_id: int):
-    db_service.subscribe_user_by_telegram_id(tg_id)
+def add_subscriber(tg_id: int) -> RetCode:
+    ret = db_service.subscribe_chat_by_telegram_id(tg_id)
+    if ret == db_service.RetCode.OK:
+        return RetCode.OK
+    elif ret == db_service.RetCode.ERROR:
+        return RetCode.ERROR
+    elif ret == db_service.RetCode.ALREADY_EXIST:
+        return RetCode.ALREADY_EXIST
+    else:
+        logging.error(f'unhandled value returned from subscribe_chat_by_telegram_id(): {ret}')
+        return RetCode.ERROR
 
 
 def remove_subscriber(tg_id: int):
-    db_service.unsubscribe_user_by_telegram_id(tg_id)
+    ret = db_service.unsubscribe_chat_by_telegram_id(tg_id)
+    if ret == db_service.RetCode.OK:
+        return RetCode.OK
+    elif ret == db_service.RetCode.ERROR:
+        return RetCode.ERROR
+    elif ret == db_service.RetCode.NOT_EXIST:
+        return RetCode.NOT_EXIST
+    else:
+        logging.error(f'unhandled value returned from unsubscribe_chat_by_telegram_id(): {ret}')
+        return RetCode.ERROR
 
 
 def _notify_subscribers():

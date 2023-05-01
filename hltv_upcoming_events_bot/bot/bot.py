@@ -23,12 +23,24 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
-    tg_notifier_service.add_subscriber(engine.effective_chat.id)
+    ret = tg_notifier_service.add_subscriber(engine.effective_chat.id)
+    if ret == tg_notifier_service.RetCode.OK:
+        send_message(engine.effective_chat.id, 'Подписали вас. Завтра придет уведомление о матчах')
+    elif ret == tg_notifier_service.RetCode.ALREADY_EXIST:
+        send_message(engine.effective_chat.id, 'Вы уже подписаны 👌')
+    else:
+        send_message(engine.effective_chat.id, 'К сожалению, произошла ошибка. Не удалось подписаться :(')
 
 
 def unsubscribe_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
-    tg_notifier_service.remove_subscriber(engine.effective_chat.id)
+    ret = tg_notifier_service.remove_subscriber(engine.effective_chat.id)
+    if ret == tg_notifier_service.RetCode.OK:
+        send_message(engine.effective_chat.id, 'Отписали вас от ежедневных обновлений. Нам очень жаль :(')
+    elif ret == tg_notifier_service.RetCode.NOT_EXIST:
+        send_message(engine.effective_chat.id, 'Похоже, что вы и не были подписаны 🤔')
+    else:
+        send_message(engine.effective_chat.id, 'К сожалению, проихошла ошибка. Не удалось отписать вас')
 
 
 def help_command(engine: Update, context: CallbackContext) -> None:

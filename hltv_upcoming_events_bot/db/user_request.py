@@ -12,6 +12,7 @@ from hltv_upcoming_events_bot.db.user import get_user
 class UserRequest(Base):
     __tablename__ = "user_request"
     id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey('chat.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
     utc_time = Column(DateTime)
     telegram_utc_time = Column(DateTime)
@@ -22,28 +23,29 @@ class UserRequest(Base):
         return f"UserRequest(id={self.id!r})"
 
 
-def add_user_request(user_id: Integer, utc_time: datetime.datetime, telegram_utc_time: datetime.datetime,
-                     telegram_message_id: int, text: str, session: Session = None) -> Optional[Integer]:
+def add_user_request(chat_id: Integer, user_id: Integer, utc_time: datetime.datetime,
+                     telegram_utc_time: datetime.datetime, telegram_message_id: int, text: str,
+                     session: Session = None) -> Optional[Integer]:
     cur_session = session if session else Session(get_engine())
     if cur_session is None:
         return None
 
-    user = get_user(user_id)
-    if user is None:
-        logging.error(f'failed to add user reqeust because user (id={user_id}) is not found')
-        return None
+    # user = get_user(user_id)
+    # if user is None:
+    #     logging.error(f'failed to add user reqeust because user (id={user_id}) is not found')
+    #     return None
 
-    user_request = UserRequest(user_id=user_id, utc_time=utc_time, telegram_utc_time=telegram_utc_time,
+    user_request = UserRequest(chat_id=chat_id, user_id=user_id, utc_time=utc_time, telegram_utc_time=telegram_utc_time,
                                telegram_message_id=telegram_message_id, text=text)
 
     try:
         cur_session.add(user_request)
         cur_session.commit()
         logging.info(
-            f"User request added: user (id={user_id}, utc_time={utc_time}, telegram_utc_time={telegram_utc_time}, "
-            f"telegram_message_id={telegram_message_id}, {text})")
+            f"User request added: chat (id={chat_id}), user (id={user_id}), utc_time={utc_time}, "
+            f"telegram_utc_time={telegram_utc_time}, telegram_message_id={telegram_message_id}, {text}")
     except Exception as e:
-        print(f"ERROR failed to add user request (user_id={user_id}): {e}")
+        logging.error(f"failed to add user request (chat_id={chat_id}, user_id={user_id}): {e}")
 
     return user_request.id
 
