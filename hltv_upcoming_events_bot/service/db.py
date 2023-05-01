@@ -1,5 +1,4 @@
 import logging
-from enum import Enum
 from typing import List
 
 from sqlalchemy import and_
@@ -9,7 +8,6 @@ from hltv_upcoming_events_bot import db
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import RetCode
 from hltv_upcoming_events_bot.db.common import get_engine
-
 
 
 def add_match(match: domain.Match):

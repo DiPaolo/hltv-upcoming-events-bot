@@ -66,10 +66,8 @@ def get_subscriber(subscriber_id: Integer, session: Session) -> Optional[Subscri
 
 
 def get_subscriber_by_telegram_id(telegram_id: int, session: Session) -> Optional[Subscriber]:
-    rrr = session\
-        .query(Subscriber)\
-        .join(Chat)\
-        .filter(Chat.telegram_id == telegram_id)\
+    return session \
+        .query(Subscriber) \
+        .join(Chat) \
+        .filter(Chat.telegram_id == telegram_id) \
         .first()
-
-    return rrr
