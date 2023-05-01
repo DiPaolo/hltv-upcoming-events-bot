@@ -1,18 +1,18 @@
 import logging
 from typing import Optional, Dict, List
 
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String, BigInteger
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from hltv_upcoming_events_bot.db.common import Base, get_engine
 from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot.db.common import Base, get_engine
 
 
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String)
     first_name = Column(String)
     last_name = Column(String)
