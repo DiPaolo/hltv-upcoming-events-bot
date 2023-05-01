@@ -16,12 +16,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    print('WTFFFFF')
     op.alter_column('chat', 'telegram_id', type_=sa.BIGINT, existing_type=sa.INTEGER)
     op.alter_column('user', 'telegram_id', type_=sa.BIGINT, existing_type=sa.INTEGER)
 
 
 def downgrade() -> None:
-    print('down!!!!!!!')
     op.alter_column('chat', 'telegram_id', type_=sa.INTEGER, existing_type=sa.BIGINT)
     op.alter_column('user', 'telegram_id', type_=sa.INTEGER, existing_type=sa.BIGINT)
