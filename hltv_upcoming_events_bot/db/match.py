@@ -1,9 +1,9 @@
 import datetime
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger, and_
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.db as db
 from hltv_upcoming_events_bot import domain
@@ -42,20 +42,20 @@ class Match(Base):
 
 def add_match_from_domain_object(match: domain.match.Match, session: Session) -> Optional[Match]:
     team1 = Team.from_domain_object(match.team1, session)
-    team1_id = team1.id if team1 else add_team(match.team1.name, match.team1.url)
+    team1_id = team1.id if team1 else add_team(match.team1.name, match.team1.url, session)
 
     team2 = Team.from_domain_object(match.team2, session)
-    team2_id = team2.id if team2 else add_team(match.team2.name, match.team2.url)
+    team2_id = team2.id if team2 else add_team(match.team2.name, match.team2.url, session)
 
     state_name = domain.get_match_state_name(match.state)
     state = db.match_state.get_match_state_by_name(state_name, session)
-    state_id = state.id if state else db.match_state.add_match_state(state_name)
+    state_id = state.id if state else db.match_state.add_match_state(state_name, session)
 
-    tournament_id = db.tournament.get_tournament_id_by_name(match.tournament.name)
+    tournament_id = db.tournament.get_tournament_id_by_name(match.tournament.name, session)
     if tournament_id is None:
-        tournament_id = db.tournament.add_tournament_from_domain_object(match.tournament)
+        tournament_id = db.tournament.add_tournament_from_domain_object(match.tournament, session)
         if tournament_id is None:
-            tournament_id = db.tournament.get_unknown_tournament_id()
+            tournament_id = db.tournament.get_unknown_tournament_id(session)
             if tournament_id is None:
                 logging.error(
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
@@ -99,14 +99,9 @@ def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_st
     return match
 
 
-def get_match(match_id: Integer) -> Optional[Match]:
-    cur_session = Session(get_engine())
-    if cur_session is None:
-        return None
-
-    ret = cur_session.get(Match, match_id)
-    cur_session.close()
-    return ret
+# def get_match(match_id: Integer) -> Optional[Match]:
+#     with Session(get_engine()) as session:
+#         return session.get(Match, match_id)
 
 
 def get_match_by_url(match_url: str, session: Session) -> Optional[Match]:
@@ -120,23 +115,7 @@ def get_match_id_by_url(match_url: str, session: Session) -> Optional[Integer]:
     return ret.id
 
 
-def get_upcoming_matches_in_datetime_interval(start_from: int, until_to: int, session: Session = None) -> List[Match]:
-    return session.query(Match)\
-        .filter(and_(start_from < Match.unix_time_utc_sec, Match.unix_time_utc_sec < until_to))\
-        .all()
-
-
-def update_match(match_id: Integer, props: Dict, session: Session = None):
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    skin = get_match(match_id)
-    for key, value in props.items():
-        setattr(skin, key, value)
-
-    # created at the beginning of the function
-    if not session:
-        cur_session.commit()
-
-    cur_session.close()
+# def get_upcoming_matches_in_datetime_interval(start_from: int, until_to: int, session) -> List[Match]:
+#     return session.query(Match)\
+#         .filter(and_(start_from < Match.unix_time_utc_sec, Match.unix_time_utc_sec < until_to))\
+#         .all()

@@ -1,5 +1,5 @@
 from .chat import add_chat, get_chat, get_chat_by_telegram_id
-from .common import init_db, create_engine, create_session, session_commit
+from .common import init_db, create_engine
 from .match import Match, add_match_from_domain_object, get_match_id_by_url
 from .match_state import get_match_state, get_match_state_by_name
 from .ret_code import RetCode
@@ -9,5 +9,5 @@ from .streamer import Streamer, add_streamer_from_domain_object, get_streamer, g
     get_streamer_id_by_url
 from .tournament import add_tournament_from_domain_object, get_tournament, get_tournament_id_by_name
 from .translation import add_translation, get_translations_by_match_id
-from .user import add_user, get_user_by_telegram_id, get_user
-from .user_request import add_user_request
+from .user import add_user, get_user_by_telegram_id, get_user, get_users
+from .user_request import add_user_request, get_recent_user_requests

@@ -23,7 +23,7 @@ class Subscriber(Base):
     #     return domain.team.Team(name=self.name, url=self.url)
 
 
-def add_subscriber_from_domain_object(chat: domain.Chat, session: Session = None) -> Optional[Subscriber]:
+def add_subscriber_from_domain_object(chat: domain.Chat, session: Session) -> Optional[Subscriber]:
     db_chat = get_chat_by_telegram_id(chat.telegram_id, session)
     if db_chat is None:
         db_chat = add_chat_from_domain_object(chat, session)

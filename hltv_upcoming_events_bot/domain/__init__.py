@@ -8,3 +8,4 @@ from .team import Team
 from .tournament import Tournament
 from .translation import Translation
 from .user import User
+from .user_request import UserRequest

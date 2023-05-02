@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.domain as domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
 
 
 class MatchState(Base):
@@ -24,29 +24,24 @@ class MatchState(Base):
         return domain.MatchState(domain.get_match_state_by_name(self.name))
 
 
-def add_match_state_from_domain_object(match_state: domain.match_state.MatchState, session: Session = None) -> Optional[Integer]:
-    return add_match_state(match_state.name, session)
+# def add_match_state_from_domain_object(match_state: domain.match_state.MatchState, session: Session = None) -> Optional[Integer]:
+#     return add_match_state(match_state.name, session)
 
 
-def add_match_state(name: str, session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    match_state = get_match_state_by_name(name, cur_session)
+def add_match_state(name: str, session: Session) -> Optional[Integer]:
+    match_state = get_match_state_by_name(name, session)
     if match_state:
         return match_state.id
 
     match_state = MatchState(name=name)
-    cur_session.add(match_state)
+    session.add(match_state)
 
     # created at the beginning of the function
-    if not session:
-        try:
-            cur_session.commit()
-            logging.info(f"Match state added (id={match_state.id}, name={match_state.name})")
-        except Exception as e:
-            logging.error(f"Failed to add match state '{name}': {e}")
+    try:
+        session.commit()
+        logging.info(f"Match state added (id={match_state.id}, name={match_state.name})")
+    except Exception as e:
+        logging.error(f"Failed to add match state '{name}': {e}")
 
     return match_state.id
 

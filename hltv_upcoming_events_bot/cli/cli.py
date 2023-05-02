@@ -7,13 +7,12 @@ import sys
 import click as click
 
 import hltv_upcoming_events_bot.bot as bot_impl
-import hltv_upcoming_events_bot.db as hltv_db
+import hltv_upcoming_events_bot.service.db as db_service
 import hltv_upcoming_events_bot.service.matches as matches_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.cli.schedule_thread import ScheduleThread
-from hltv_upcoming_events_bot.db.user import get_users
-from hltv_upcoming_events_bot.db.user_request import get_recent_user_requests
+from hltv_upcoming_events_bot.db import init_db
 
 
 @click.group()
@@ -72,8 +71,7 @@ def start(token: str, pg_database: str, pg_host: str, pg_port: str, pg_username:
 
     # matches_service.init()
     tg_notifier_service.init(bot_impl.send_message)
-
-    hltv_db.init_db(config.DB_FILENAME)
+    init_db(config.DB_FILENAME)
 
     try:
         bot_impl.start(config.BOT_TOKEN)
@@ -118,7 +116,7 @@ def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
     continuous_thread = ScheduleThread()
     continuous_thread.start()
 
-    hltv_db.init_db(config.DB_FILENAME)
+    init_db(config.DB_FILENAME)
     matches_service.init()
 
 
@@ -144,7 +142,7 @@ def once(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pass
     if pg_password is not None:
         config.DB_PG_PWD = pg_password
 
-    hltv_db.init_db(config.DB_FILENAME)
+    init_db(config.DB_FILENAME)
     matches_service.populate_translations()
 
 
@@ -178,10 +176,10 @@ def users(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
     if pg_password is not None:
         config.DB_PG_PWD = pg_password
 
-    hltv_db.init_db(config.DB_FILENAME)
+    init_db(config.DB_FILENAME)
 
     idx = 1
-    for u in get_users():
+    for u in db_service.get_users():
         print(f'{idx}:\t{u.username} ({u.telegram_id})')
         idx += 1
 
@@ -215,12 +213,12 @@ def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pa
     if n is None:
         n = 10
 
-    hltv_db.init_db(config.DB_FILENAME)
+    init_db(config.DB_FILENAME)
 
-    requests = get_recent_user_requests(n)
+    requests = db_service.get_recent_user_requests(n)
     idx = 1
     for r in requests:
-        print(f'{idx}:\t{r.telegram_utc_time} user {r.user_id}: {r.text}')
+        print(f'{idx}:\t{r.telegram_utc_time} user {r.user.telegram_id}: {r.text}')
         idx += 1
 
     print(f'\n'

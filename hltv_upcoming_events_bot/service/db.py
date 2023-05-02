@@ -63,16 +63,33 @@ def subscribe_chat_by_telegram_id(tg_id: int) -> RetCode:
 
 def unsubscribe_chat_by_telegram_id(tg_id) -> RetCode:
     with Session(get_engine()) as session:
-        # db_chat = db.get_chat_by_telegram_id(tg_id, session)
-        # if db_chat is None:
-        #     logging.error(f'failed to unsubscribe user/chat (telegram_id={tg_id}): no appropriate chat in DB')
-        #     return RetCode.ERROR
-
         db_subscriber = db.get_subscriber_by_telegram_id(tg_id, session)
         if db_subscriber is None:
             return RetCode.NOT_EXIST
 
         return db.delete_subscriber_by_id(db_subscriber.id, session)
+
+
+def get_users() -> List[domain.User]:
+    out = list()
+
+    with Session(get_engine()) as session:
+        db_users = db.get_users(session)
+        for db_user in db_users:
+            out.append(db_user.to_domain_object())
+
+    return out
+
+
+def get_recent_user_requests(n: int) -> List[domain.UserRequest]:
+    out = list()
+
+    with Session(get_engine()) as session:
+        db_user_requests = db.get_recent_user_requests(n, session)
+        for db_user_req in db_user_requests:
+            out.append(db_user_req.to_domain_object(session))
+
+    return out
 
 
 def get_subscribers() -> List[domain.User]:
@@ -106,3 +123,22 @@ def get_translations_in_period(start_from: int, until_to: int) -> List[domain.Tr
                 out.append(domain.Translation(domain_match, domain_streamer))
 
     return out
+
+
+# def get_recent_user_request(max_count: int) -> List[domain.UserRequest]:
+#     out = list()
+#     with Session(get_engine()) as session:
+#         requests = db.get_recent_user_requests(max_count, session)
+#         for req in requests:
+#             # TODO add mapping
+#             match_translations = db.get_translations_by_match_id(match.id, session)
+#             domain_match = None
+#             for trans in match_translations:
+#                 if domain_match is None:
+#                     domain_match = match.to_domain_object(session)
+#
+#                 streamer = db.get_streamer(trans.streamer_id, session)
+#                 domain_streamer = streamer.to_domain_object()
+#                 out.append(domain.Translation(domain_match, domain_streamer))
+#
+#     return out
