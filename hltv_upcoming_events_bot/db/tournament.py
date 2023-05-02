@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.domain as domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
 
 _UNKNOWN_TOURNAMENT_NAME = 'Unknown'
 
@@ -24,34 +24,25 @@ class Tournament(Base):
         return domain.Tournament(name=self.name, url=self.url, hltv_id=self.hltv_id)
 
 
-def add_tournament_from_domain_object(tournament: domain.Tournament, session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    return add_tournament(tournament.name, tournament.url, tournament.hltv_id)
+def add_tournament_from_domain_object(tournament: domain.Tournament, session: Session) -> Optional[Integer]:
+    return add_tournament(tournament.name, tournament.url, tournament.hltv_id, session)
 
 
-def add_tournament(name: str, url: str, hltv_id: int, session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
+def add_tournament(name: str, url: str, hltv_id: int, session: Session) -> Optional[Integer]:
     tournament = Tournament(name=name, url=url, hltv_id=hltv_id)
-    cur_session.add(tournament)
+    session.add(tournament)
 
     # created at the beginning of the function
     if not session:
         try:
-            cur_session.commit()
+            session.commit()
             logging.info(
                 f"Tournament added: name={tournament.name}, url={tournament.url}")
         except Exception as e:
             logging.error(f"Failed to add tournament (name={tournament.name}, url={tournament.url}): {e}")
-            cur_session.close()
+            session.close()
             return None
 
-    cur_session.close()
     return tournament.id
 
 
@@ -59,19 +50,12 @@ def get_tournament(tournament_id: Integer, session: Session) -> Optional[Tournam
     return session.get(Tournament, tournament_id)
 
 
-def get_tournament_id_by_name(name: str, session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
+def get_tournament_id_by_name(name: str, session: Session) -> Optional[Integer]:
     try:
-        tournament = cur_session.query(Tournament).filter(Tournament.name == name).first()
+        tournament = session.query(Tournament).filter(Tournament.name == name).first()
     except BaseException as e:
         logging.error(f"failed to get tournament (name={name}) from DB: {e}")
-        cur_session.close()
         return None
-
-    cur_session.close()
 
     if tournament is None:
         return None
@@ -79,11 +63,11 @@ def get_tournament_id_by_name(name: str, session: Session = None) -> Optional[In
     return tournament.id
 
 
-def add_unknown_tournament(session: Session = None) -> Optional[Integer]:
-    return add_tournament(_UNKNOWN_TOURNAMENT_NAME, '', -1, session)
+# def add_unknown_tournament(session: Session = None) -> Optional[Integer]:
+#     return add_tournament(_UNKNOWN_TOURNAMENT_NAME, '', -1, session)
 
 
-def get_unknown_tournament_id(session: Session = None) -> Optional[Integer]:
+def get_unknown_tournament_id(session: Session) -> Optional[Integer]:
     tournament = get_tournament_id_by_name(_UNKNOWN_TOURNAMENT_NAME, session)
     if tournament is not None:
         return tournament.id

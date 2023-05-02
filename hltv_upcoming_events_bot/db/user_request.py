@@ -5,8 +5,9 @@ from typing import Optional, List
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, BigInteger, desc
 from sqlalchemy.orm import Session
 
-from hltv_upcoming_events_bot.db.common import Base, get_engine
-from hltv_upcoming_events_bot.db.user import get_user
+from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot.db import get_chat, get_user
+from hltv_upcoming_events_bot.db.common import Base
 
 
 class UserRequest(Base):
@@ -22,25 +23,24 @@ class UserRequest(Base):
     def __repr__(self):
         return f"UserRequest(id={self.id!r})"
 
+    def to_domain_object(self, session: Session):
+        chat = get_chat(self.chat_id, session)
+        user = get_user(self.user_id, session)
+
+        return domain.user_request.UserRequest(chat=chat.to_domain_object(), user=user.to_domain_object(),
+                                               utc_time=self.utc_time, telegram_utc_time=self.telegram_utc_time,
+                                               telegram_message_id=self.telegram_message_id, text=self.text)
+
 
 def add_user_request(chat_id: Integer, user_id: Integer, utc_time: datetime.datetime,
                      telegram_utc_time: datetime.datetime, telegram_message_id: int, text: str,
-                     session: Session = None) -> Optional[Integer]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return None
-
-    # user = get_user(user_id)
-    # if user is None:
-    #     logging.error(f'failed to add user reqeust because user (id={user_id}) is not found')
-    #     return None
-
+                     session: Session) -> Optional[Integer]:
     user_request = UserRequest(chat_id=chat_id, user_id=user_id, utc_time=utc_time, telegram_utc_time=telegram_utc_time,
                                telegram_message_id=telegram_message_id, text=text)
 
     try:
-        cur_session.add(user_request)
-        cur_session.commit()
+        session.add(user_request)
+        session.commit()
         logging.info(
             f"User request added: chat (id={chat_id}), user (id={user_id}), utc_time={utc_time}, "
             f"telegram_utc_time={telegram_utc_time}, telegram_message_id={telegram_message_id}, {text}")
@@ -50,10 +50,5 @@ def add_user_request(chat_id: Integer, user_id: Integer, utc_time: datetime.date
     return user_request.id
 
 
-def get_recent_user_requests(n: int = 10, session: Session = None) -> List[UserRequest]:
-    cur_session = session if session else Session(get_engine())
-    if cur_session is None:
-        return list()
-
-    ret = cur_session.query(UserRequest).order_by(desc('utc_time')).limit(n)
-    return ret
+def get_recent_user_requests(n: int, session: Session) -> List[UserRequest]:
+    return session.query(UserRequest).order_by(desc('utc_time')).limit(n)

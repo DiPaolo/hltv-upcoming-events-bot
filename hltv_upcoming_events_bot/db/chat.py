@@ -19,6 +19,9 @@ class Chat(Base):
     def __repr__(self):
         return f"Chat(id={self.id!r})"
 
+    def to_domain_object(self):
+        return domain.Chat(telegram_id=self.telegram_id, title=self.title, type=self.type)
+
 
 def add_chat_from_domain_object(chat: domain.Chat, session: Session) -> Optional[Integer]:
     return add_chat(chat.telegram_id, chat.title, chat.type, session)

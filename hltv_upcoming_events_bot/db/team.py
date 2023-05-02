@@ -25,25 +25,24 @@ class Team(Base):
         return domain.team.Team(name=self.name, url=self.url)
 
 
-def add_team_from_domain_object(team: domain.Team) -> Optional[Team]:
-    return add_team(team.name, team.url)
+# def add_team_from_domain_object(team: domain.Team) -> Optional[Team]:
+#     return add_team(team.name, team.url)
 
 
-def add_team(name: str, url: str) -> Optional[Integer]:
-    with Session(get_engine()) as session:
-        team = get_team_by_name(name, session)
-        if team:
-            return team.id
+def add_team(name: str, url: str, session: Session) -> Optional[Integer]:
+    team = get_team_by_name(name, session)
+    if team:
+        return team.id
 
-        try:
-            team = Team(name=name, url=url)
-            session.add(team)
-            session.commit()
-            logging.info(f"Team added (id={team.id}, name={team.name})")
-            return team.id
-        except Exception as e:
-            logging.error(f"Failed to add team '{name}': {e}")
-            return None
+    try:
+        team = Team(name=name, url=url)
+        session.add(team)
+        session.commit()
+        logging.info(f"Team added (id={team.id}, name={team.name})")
+        return team.id
+    except Exception as e:
+        logging.error(f"Failed to add team '{name}': {e}")
+        return None
 
 
 def get_team(team_id: Integer, session: Session) -> Optional[Team]:
@@ -60,8 +59,8 @@ def get_team_by_name(name: str, session: Session) -> Optional[Team]:
     return team
 
 
-def update_team(team_id: Integer, props: Dict):
-    with Session(get_engine()) as session:
-        skin = get_team(team_id, session)
-        for key, value in props.items():
-            setattr(skin, key, value)
+# def update_team(team_id: Integer, props: Dict):
+#     with Session(get_engine()) as session:
+#         skin = get_team(team_id, session)
+#         for key, value in props.items():
+#             setattr(skin, key, value)
