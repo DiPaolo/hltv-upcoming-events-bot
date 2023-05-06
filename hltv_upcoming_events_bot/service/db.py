@@ -81,7 +81,7 @@ def get_subscribers() -> List[domain.User]:
     with Session(get_engine()) as session:
         db_subscribers = db.get_subscribers(session)
         for db_sub in db_subscribers:
-            db_user = db.get_user(db_sub.user_id)
+            db_user = db.get_chat(db_sub.chat_id, session)
             if db_user is not None:
                 out.append(db_user)
 
