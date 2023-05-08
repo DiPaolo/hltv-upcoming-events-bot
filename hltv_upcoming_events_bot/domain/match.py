@@ -1,10 +1,8 @@
 import datetime
 from dataclasses import dataclass
-from typing import List
 
 from .match_stars import MatchStars
 from .match_state import MatchState
-from .streamer import Streamer
 from .team import Team
 from .tournament import Tournament
 

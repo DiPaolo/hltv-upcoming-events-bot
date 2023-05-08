@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import datetime
 import logging
 import os
 import sys
@@ -10,6 +10,7 @@ import hltv_upcoming_events_bot.bot as bot_impl
 import hltv_upcoming_events_bot.service.db as db_service
 import hltv_upcoming_events_bot.service.matches as matches_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
+import hltv_upcoming_events_bot.service.news as news_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.cli.schedule_thread import ScheduleThread
 from hltv_upcoming_events_bot.db import init_db
@@ -146,6 +147,34 @@ def once(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pass
     matches_service.populate_translations()
 
 
+@parser.command()
+@click.option('--to-date', default=None, type=click.DateTime(formats=["%Y-%m-%d"]), help='Parse news until specified '
+                                                                                         'date')
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def news(to_date: datetime.datetime, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
+    init_db(config.DB_FILENAME)
+    news_service.populate_news(to_date if to_date is not None else None)
+
+
 @click.group()
 def admin():
     pass
@@ -263,6 +292,49 @@ def upgrade(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_p
 
 
 cli.add_command(db)
+
+
+@click.group()
+def news():
+    pass
+
+
+@news.command()
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    import alembic.config
+    import alembic.command
+
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
+    init_db(config.DB_FILENAME)
+
+    cur_timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+    news_items = db_service.get_recent_news(datetime.datetime.utcnow() - datetime.timedelta(hours=12), 5)
+    idx = 1
+    for n in news_items:
+        print(f'{idx}:\t{n.date_time_utc.astimezone(cur_timezone)} {n.title} ({n.url})')
+        idx += 1
+
+
+cli.add_command(news)
 
 
 def init_app():

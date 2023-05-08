@@ -1,4 +1,5 @@
 import logging
+import datetime
 from typing import List
 
 from sqlalchemy import and_
@@ -125,20 +126,37 @@ def get_translations_in_period(start_from: int, until_to: int) -> List[domain.Tr
     return out
 
 
-# def get_recent_user_request(max_count: int) -> List[domain.UserRequest]:
-#     out = list()
-#     with Session(get_engine()) as session:
-#         requests = db.get_recent_user_requests(max_count, session)
-#         for req in requests:
-#             # TODO add mapping
-#             match_translations = db.get_translations_by_match_id(match.id, session)
-#             domain_match = None
-#             for trans in match_translations:
-#                 if domain_match is None:
-#                     domain_match = match.to_domain_object(session)
-#
-#                 streamer = db.get_streamer(trans.streamer_id, session)
-#                 domain_streamer = streamer.to_domain_object()
-#                 out.append(domain.Translation(domain_match, domain_streamer))
-#
-#     return out
+def add_news_item(news_item_domain: domain.NewsItem) -> RetCode:
+    with Session(get_engine()) as session:
+        news_item = db.get_news_item_by_url(news_item_domain.url, session)
+        if news_item is not None:
+            return RetCode.ALREADY_EXIST
+
+        news_item = db.add_news_item_from_domain_object(news_item_domain, session)
+        if news_item is None:
+            return RetCode.ERROR
+
+        return RetCode.OK
+
+
+def update_news_item(news_item_domain: domain.NewsItem) -> RetCode:
+    with Session(get_engine()) as session:
+        news_item = db.get_news_item_by_url(news_item_domain.url, session)
+        if news_item is None:
+            return RetCode.NOT_EXIST
+
+        db.update_news_item(news_item.id, news_item_domain.date_time_utc, news_item_domain.title,
+                            news_item_domain.short_desc, news_item_domain.comment_count,
+                            news_item_domain.comment_avg_hour, session)
+        return RetCode.OK
+
+
+def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
+    out = list()
+
+    with Session(get_engine()) as session:
+        news_items = db.get_recent_news_items(since_time_utc, max_count if max_count is not None else 20, session)
+        for news_item in news_items:
+            out.append(news_item.to_domain_object())
+
+    return out

@@ -2,6 +2,8 @@ from .chat import add_chat, get_chat, get_chat_by_telegram_id
 from .common import init_db, create_engine
 from .match import Match, add_match_from_domain_object, get_match_id_by_url
 from .match_state import get_match_state, get_match_state_by_name
+from .news_item import add_news_item, add_news_item_from_domain_object, get_news_item_by_url, get_recent_news_items, \
+    update_news_item
 from .ret_code import RetCode
 from .subscriber import add_subscriber_from_domain_object, delete_subscriber_by_id, get_subscribers, \
     get_subscriber_by_telegram_id

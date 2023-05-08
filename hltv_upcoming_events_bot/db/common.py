@@ -33,10 +33,10 @@ def get_db_url(db_name: str) -> str:
 def init_db(name: str):
     global engine
 
-    engine = create_engine(get_db_url(name)
+    engine = create_engine(get_db_url(name),
                            # , echo=True,
                            # , future=True
-                           )
+                           connect_args={"options": "-c timezone=utc"})
     # Base.metadata.create_all(engine)
 
 
