@@ -77,15 +77,15 @@ def get_upcoming_matches_str() -> str:
 
 def _setup_schedule():
     if config.DEBUG:
-        schedule.every(3).minutes.do(_do_job)
+        schedule.every(3).minutes.do(populate_translations)
     else:
-        schedule.every(4).to(6).hours.do(_do_job)
+        schedule.every(4).to(6).hours.do(populate_translations)
 
     # initial load of cache
-    _do_job()
+    populate_translations()
 
 
-def _do_job():
+def populate_translations():
     logging.info("Getting the list of today's matches")
 
     translations = _parse_upcoming_translations()

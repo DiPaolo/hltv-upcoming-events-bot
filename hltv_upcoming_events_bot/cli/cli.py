@@ -122,6 +122,32 @@ def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
     matches_service.init()
 
 
+@parser.command(help='Parse only once; do not work in background')
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def once(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+    if pg_database is not None:
+        config.DB_FILENAME = pg_database
+
+    if pg_host is not None:
+        config.DB_PG_HOST = pg_host
+
+    if pg_port is not None:
+        config.DB_PG_PORT = pg_port
+
+    if pg_username is not None:
+        config.DB_PG_USER = pg_username
+
+    if pg_password is not None:
+        config.DB_PG_PWD = pg_password
+
+    hltv_db.init_db(config.DB_FILENAME)
+    matches_service.populate_translations()
+
+
 @click.group()
 def admin():
     pass
