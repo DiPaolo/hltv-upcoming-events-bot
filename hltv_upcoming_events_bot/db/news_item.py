@@ -23,9 +23,7 @@ class NewsItem(Base):
         return f"News_item(id={self.id!r}, datetime={self.date_time_utc}, title={self.title!r}, url={self.url!r})"
 
     def to_domain_object(self):
-        date_time_utc = self.date_time_utc
-        # date_time_utc.tzinfo = datetime.timezone.utc
-        return domain.NewsItem(date_time_utc=date_time_utc, title=self.title,
+        return domain.NewsItem(date_time_utc=self.date_time_utc, title=self.title,
                                short_desc=self.short_desc, url=self.url, comment_count=self.comment_count,
                                comment_avg_hour=self.comment_avg_hour)
 
@@ -64,7 +62,7 @@ def get_news_item_by_url(url: str, session: Session) -> Optional[NewsItem]:
 def get_recent_news_items(since_time_utc: datetime.datetime, max_count: int, session: Session) -> List[NewsItem]:
     return session.query(NewsItem)\
         .filter(NewsItem.date_time_utc >= since_time_utc)\
-        .order_by(desc(NewsItem.date_time_utc))\
+        .order_by(desc(NewsItem.comment_avg_hour))\
         .limit(max_count)
 
 

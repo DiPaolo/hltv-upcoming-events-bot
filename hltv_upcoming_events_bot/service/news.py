@@ -36,6 +36,19 @@ def start():
     # _setup_schedule()
 
 
+def get_recent_news_str(since_time_utc: datetime.datetime, max_count: int = None) -> str:
+    news_items = get_recent_news(since_time_utc, max_count)
+
+    news_item_str_list = list()
+    for news_item in news_items:
+        match_str = f"<b><a href='{news_item.url}'>{news_item.title}</a></b>\n\n" \
+                    f"{news_item.short_desc}"
+        news_item_str_list.append(match_str)
+
+    msg = '\n\n'.join(news_item_str_list)
+    return msg
+
+
 def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
     logging.info(f'Get recent news (since_time_utc={since_time_utc}, max={max_count})')
     return db_service.get_recent_news(since_time_utc, max_count)
