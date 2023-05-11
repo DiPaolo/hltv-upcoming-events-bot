@@ -1,9 +1,12 @@
+import datetime
+
 import telegram
 from telegram import ParseMode, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 import hltv_upcoming_events_bot
 import hltv_upcoming_events_bot.service.matches as matches_service
+import hltv_upcoming_events_bot.service.news as news_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.bot.utils import log_command
@@ -19,6 +22,15 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
     upcoming_matches_str = matches_service.get_upcoming_matches_str()
     send_message(engine.effective_chat.id,
                  'ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str)
+
+
+def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
+    log_command(engine)
+
+    # cur_timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+    recent_news_str = news_service.get_recent_news_str(datetime.datetime.utcnow() - datetime.timedelta(hours=12), 3)
+    send_message(engine.effective_chat.id,
+                 'никаких интересных новостей за последнее время :(' if not recent_news_str else recent_news_str)
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
@@ -65,6 +77,7 @@ def start(token: str) -> None:
     # commands
     dispatcher.add_handler(CommandHandler("start", start_command))
     dispatcher.add_handler(CommandHandler("matches", get_upcoming_matches_command))
+    dispatcher.add_handler(CommandHandler('news', get_recent_news_command))
     dispatcher.add_handler(CommandHandler("subscribe", subscribe_command))
     dispatcher.add_handler(CommandHandler("unsubscribe", unsubscribe_command))
     dispatcher.add_handler(CommandHandler("help", help_command))

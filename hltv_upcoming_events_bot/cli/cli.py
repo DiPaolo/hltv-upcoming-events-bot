@@ -306,9 +306,6 @@ def news():
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
 def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    import alembic.config
-    import alembic.command
-
     if pg_database is not None:
         config.DB_FILENAME = pg_database
 
@@ -327,7 +324,7 @@ def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pa
     init_db(config.DB_FILENAME)
 
     cur_timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-    news_items = db_service.get_recent_news(datetime.datetime.utcnow() - datetime.timedelta(hours=12), 5)
+    news_items = db_service.get_recent_news(datetime.datetime.utcnow() - datetime.timedelta(hours=12), 3)
     idx = 1
     for n in news_items:
         print(f'{idx}:\t{n.date_time_utc.astimezone(cur_timezone)} {n.title} ({n.url})')
