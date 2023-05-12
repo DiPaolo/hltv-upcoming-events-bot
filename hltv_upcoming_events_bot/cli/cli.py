@@ -18,39 +18,18 @@ from hltv_upcoming_events_bot.db import init_db
 
 @click.group()
 @click.option('--debug/--no-debug', default=None)
-def cli(debug: bool):
+@click.option('--pg-database', default=None, help='PostgreSQL database name')
+@click.option('--pg-host', default=None, help='PostgreSQL server host')
+@click.option('--pg-port', default=None, help='PostgreSQL server port')
+@click.option('--pg-username', default=None, help='PostgreSQL username')
+@click.option('--pg-password', default=None, help='PostgreSQL password')
+def cli(debug: bool, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
     # apply env variables first;
     # command line parameters have higher priority, so it goes after
     _apply_env_variables_to_config()
 
     if debug is not None:
         config.DEBUG_PRINT = debug
-
-
-@click.group()
-def bot():
-    pass
-
-
-cli.add_command(bot)
-
-
-@bot.command()
-@click.option('-t', '--token', default=None, help='Bot token')
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def start(token: str, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if token is not None:
-        config.BOT_TOKEN = token
-
-    if config.BOT_TOKEN is None:
-        logging.error('Bot token is not set')
-        click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
-                   "'-t' / '--token' command line argument")
-        sys.exit(1)
 
     if pg_database is not None:
         config.DB_FILENAME = pg_database
@@ -66,6 +45,27 @@ def start(token: str, pg_database: str, pg_host: str, pg_port: str, pg_username:
 
     if pg_password is not None:
         config.DB_PG_PWD = pg_password
+
+
+@click.group()
+def bot():
+    pass
+
+
+cli.add_command(bot)
+
+
+@bot.command()
+@click.option('-t', '--token', default=None, help='Bot token')
+def start(token: str):
+    if token is not None:
+        config.BOT_TOKEN = token
+
+    if config.BOT_TOKEN is None:
+        logging.error('Bot token is not set')
+        click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
+                   "'-t' / '--token' command line argument")
+        sys.exit(1)
 
     continuous_thread = ScheduleThread()
     continuous_thread.start()
@@ -93,27 +93,7 @@ cli.add_command(parser)
 
 
 @parser.command()
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+def start():
     continuous_thread = ScheduleThread()
     continuous_thread.start()
 
@@ -122,55 +102,15 @@ def start(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
 
 
 @parser.command(help='Parse only once; do not work in background')
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def once(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+def once():
     init_db(config.DB_FILENAME)
     matches_service.populate_translations()
 
 
 @parser.command()
-@click.option('--to-date', default=None, type=click.DateTime(formats=["%Y-%m-%d"]), help='Parse news until specified '
-                                                                                         'date')
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def news(to_date: datetime.datetime, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+@click.option('--to-date', default=None, type=click.DateTime(formats=["%Y-%m-%d"]),
+              help='Parse news until specified date')
+def news(to_date: datetime.datetime):
     init_db(config.DB_FILENAME)
     news_service.populate_news(to_date if to_date is not None else None)
 
@@ -184,27 +124,7 @@ cli.add_command(admin)
 
 
 @admin.command()
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def users(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+def users():
     init_db(config.DB_FILENAME)
 
     idx = 1
@@ -217,28 +137,8 @@ def users(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_pas
 
 
 @admin.command()
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
 @click.option('-n/--number', default=None)
-def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str, n: int):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+def recent(n: int):
     if n is None:
         n = 10
 
@@ -260,29 +160,9 @@ def db():
 
 
 @db.command()
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def upgrade(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+def upgrade():
     import alembic.config
     import alembic.command
-
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
 
     cur_file_dir = os.path.dirname(os.path.realpath(__file__))
     project_root_dir = os.path.abspath(os.path.join(cur_file_dir, '..', '..'))
@@ -300,27 +180,7 @@ def news():
 
 
 @news.command()
-@click.option('--pg-database', default=None, help='PostgreSQL database name')
-@click.option('--pg-host', default=None, help='PostgreSQL server host')
-@click.option('--pg-port', default=None, help='PostgreSQL server port')
-@click.option('--pg-username', default=None, help='PostgreSQL username')
-@click.option('--pg-password', default=None, help='PostgreSQL password')
-def recent(pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
-    if pg_database is not None:
-        config.DB_FILENAME = pg_database
-
-    if pg_host is not None:
-        config.DB_PG_HOST = pg_host
-
-    if pg_port is not None:
-        config.DB_PG_PORT = pg_port
-
-    if pg_username is not None:
-        config.DB_PG_USER = pg_username
-
-    if pg_password is not None:
-        config.DB_PG_PWD = pg_password
-
+def recent():
     init_db(config.DB_FILENAME)
 
     cur_timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
