@@ -74,6 +74,15 @@ def start(token: str) -> None:
     engine = Updater(token)
     dispatcher = engine.dispatcher
 
+    commands_str = '''
+    matches - список интересных матчей на сегодня
+    news - последние интересные новости
+    subscribe - подписаться на уведомления о матчах и новостях
+    unsubscribe - отписаться от уведомлений
+    help - вывести справочную информацию
+    version - показать текущую версию бота
+    '''
+
     # commands
     dispatcher.add_handler(CommandHandler("start", start_command))
     dispatcher.add_handler(CommandHandler("matches", get_upcoming_matches_command))
