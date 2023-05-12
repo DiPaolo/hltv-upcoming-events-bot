@@ -27,8 +27,7 @@ def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> No
 def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
 
-    # cur_timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-    recent_news_str = news_service.get_recent_news_str(datetime.datetime.utcnow() - datetime.timedelta(hours=12), 3)
+    recent_news_str = news_service.get_recent_news_str(datetime.datetime.utcnow() - datetime.timedelta(hours=24), 5)
     send_message(engine.effective_chat.id,
                  'никаких интересных новостей за последнее время :(' if not recent_news_str else recent_news_str)
 
