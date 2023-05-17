@@ -108,7 +108,7 @@ def once():
 
 
 @parser.command()
-@click.option('--to-date', default=None, type=click.DateTime(formats=["%Y-%m-%d"]),
+@click.option('--to-date', default=None, type=click.DateTime(formats=["%Y-%m-%dT%H:%M:%S"]),
               help='Parse news until specified date')
 def news(to_date: datetime.datetime):
     init_db(config.DB_FILENAME)

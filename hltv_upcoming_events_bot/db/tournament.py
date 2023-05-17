@@ -32,16 +32,14 @@ def add_tournament(name: str, url: str, hltv_id: int, session: Session) -> Optio
     tournament = Tournament(name=name, url=url, hltv_id=hltv_id)
     session.add(tournament)
 
-    # created at the beginning of the function
-    if not session:
-        try:
-            session.commit()
-            logging.info(
-                f"Tournament added: name={tournament.name}, url={tournament.url}")
-        except Exception as e:
-            logging.error(f"Failed to add tournament (name={tournament.name}, url={tournament.url}): {e}")
-            session.close()
-            return None
+    try:
+        session.commit()
+        logging.info(
+            f"Tournament added: name={tournament.name}, url={tournament.url}")
+    except Exception as e:
+        logging.error(f"Failed to add tournament (name={tournament.name}, url={tournament.url}): {e}")
+        session.close()
+        return None
 
     return tournament.id
 

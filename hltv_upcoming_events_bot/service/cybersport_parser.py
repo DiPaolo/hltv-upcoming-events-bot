@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from typing import List, Optional
 
 import pywebparser.pywebparser as pwp
@@ -114,15 +115,24 @@ def _parse_news_item_page(url: str, parser: pwp.Parser) -> Optional[str]:
 
     logging.info(f'Parse news item page {url}')
 
-    parser.goto(url)
-
     try:
-        paragraph_elems = parser.find_elements("//div[contains(@class, 'text-content')]/p")
-        if len(paragraph_elems) == 0:
+        found = False
+        for i in range(1, 5):
+            parser.goto(url)
+            paragraph_elems = parser.find_elements("//div[contains(@class, 'text-content')]/p")
+            if len(paragraph_elems) > 0:
+                found = True
+                break
+
+            logging.warning(f'failed to parse news item (url={url}): no paragraphs found')
+            logging.info(f'wait and retry ({i})...')
+            time.sleep(3)
+
+        if not found:
             logging.error(f'failed to parse news item (url={url}): no paragraphs found')
             return None
-    except:
-        logging.error('!!! paragraph_elems !!!')
+    except Exception as ex:
+        logging.error(f"failed to parse news item's paragraphs: {ex}")
         return None
 
     # takes the first paragraph

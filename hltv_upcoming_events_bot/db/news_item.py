@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from sqlalchemy import Column, Integer, String, DateTime, Float, desc
 from sqlalchemy.orm import Session
@@ -60,9 +60,9 @@ def get_news_item_by_url(url: str, session: Session) -> Optional[NewsItem]:
 
 
 def get_recent_news_items(since_time_utc: datetime.datetime, max_count: int, session: Session) -> List[NewsItem]:
-    return session.query(NewsItem)\
-        .filter(NewsItem.date_time_utc >= since_time_utc)\
-        .order_by(desc(NewsItem.comment_avg_hour))\
+    return session.query(NewsItem) \
+        .filter(NewsItem.date_time_utc >= since_time_utc) \
+        .order_by(desc(NewsItem.comment_avg_hour)) \
         .limit(max_count)
 
 
@@ -72,10 +72,26 @@ def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title:
     if news_item is None:
         return
 
-    news_item.date_time_utc = date_time_utc
-    news_item.title = title
-    news_item.short_desc = short_description
-    news_item.comment_count = comment_count
-    news_item.comment_avg_hour = comment_avg_hour
-
     session.commit()
+
+    changed_props = list()
+
+    changes = [
+        [date_time_utc, 'date_time_utc'],
+        [title, 'title'],
+        [short_description, 'short_desc'],
+        [comment_count, 'comment_count'],
+        [comment_avg_hour, 'comment_avg_hour'],
+    ]
+
+    for change in changes:
+        if change[0] is not None:
+            old_value = getattr(news_item, change[1])
+            if change[0] != old_value:
+                setattr(news_item, change[1], change[0])
+                changed_props.append((old_value, change[0]))
+
+    updated_props_str = ', '.join([f'{p[0]} -> {p[1]}' for p in changed_props]) if len(
+        changed_props) > 0 else 'no changes'
+
+    logging.info(f'news item updated: {updated_props_str}')
