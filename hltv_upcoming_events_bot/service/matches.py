@@ -72,7 +72,7 @@ def get_upcoming_matches_str() -> str:
         msg += f'Сегодня игры <b>{tournaments_names.pop()}</b>\n\n'
 
     msg += '\n\n'.join(match_str_list)
-    return msg
+    return 'ничего интересного сегодня :(' if not msg else msg
 
 
 def _setup_schedule():

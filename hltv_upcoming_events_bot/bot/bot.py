@@ -5,6 +5,7 @@ from telegram import ParseMode, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 import hltv_upcoming_events_bot
+import hltv_upcoming_events_bot.service.db as db_service
 import hltv_upcoming_events_bot.service.matches as matches_service
 import hltv_upcoming_events_bot.service.news as news_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
@@ -19,17 +20,22 @@ def start_command(engine: Update, context: CallbackContext) -> None:
 
 def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
+
     upcoming_matches_str = matches_service.get_upcoming_matches_str()
-    send_message(engine.effective_chat.id,
-                 'ничего интересного сегодня :(' if not upcoming_matches_str else upcoming_matches_str)
+    send_message(engine.effective_chat.id, upcoming_matches_str)
 
 
 def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
     log_command(engine)
 
-    recent_news_str = news_service.get_recent_news_str(datetime.datetime.utcnow() - datetime.timedelta(hours=24), 5)
-    send_message(engine.effective_chat.id,
-                 'никаких интересных новостей за последнее время :(' if not recent_news_str else recent_news_str)
+    tg_id = engine.effective_chat.id
+
+    recent_news = news_service.get_recent_news_for_chat(
+        tg_id, datetime.datetime.utcnow() - datetime.timedelta(hours=240), 3)
+    recent_news_str = news_service.get_recent_news_str(recent_news)
+    db_service.mark_news_items_as_sent(recent_news, [tg_id])
+
+    send_message(engine.effective_chat.id, recent_news_str)
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
@@ -66,7 +72,8 @@ def version_command(engine: Update, context: CallbackContext) -> None:
 
 def send_message(chat_id: int, msg: str):
     bot = telegram.Bot(config.BOT_TOKEN)
-    bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    ret = bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    pass
 
 
 def start(token: str) -> None:

@@ -3,10 +3,8 @@ import logging
 from enum import Enum
 from typing import Optional, List
 
-import schedule
-
 import hltv_upcoming_events_bot.service.db as db_service
-from hltv_upcoming_events_bot import config, domain
+from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.service import cybersport_parser as parser
 
 _CACHED_MATCHES: Optional[List] = None
@@ -36,9 +34,7 @@ def start():
     # _setup_schedule()
 
 
-def get_recent_news_str(since_time_utc: datetime.datetime, max_count: int = None) -> str:
-    news_items = get_recent_news(since_time_utc, max_count)
-
+def get_recent_news_str(news_items: List[domain.NewsItem]) -> str:
     news_item_str_list = list()
     for news_item in news_items:
         match_str = f"<b><a href='{news_item.url}'>{news_item.title}</a></b>\n\n" \
@@ -46,12 +42,14 @@ def get_recent_news_str(since_time_utc: datetime.datetime, max_count: int = None
         news_item_str_list.append(match_str)
 
     msg = '\n\n'.join(news_item_str_list)
-    return msg
+    return 'никаких интересных новостей за последнее время :(' if not msg else msg
 
 
-def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
-    logging.info(f'Get recent news (since_time_utc={since_time_utc}, max={max_count})')
-    return db_service.get_recent_news(since_time_utc, max_count)
+def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> List[
+    domain.NewsItem]:
+    logging.info(f'Get recent news for chat (chat_telegram_id={chat_telegram_id}, since_time_utc={since_time_utc}, '
+                 f'max={max_count})')
+    return db_service.get_recent_news_for_chat(chat_telegram_id, since_time_utc, max_count)
 
 
 def populate_news(to_date_time: datetime.datetime = None):
