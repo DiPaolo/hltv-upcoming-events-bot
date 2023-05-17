@@ -2,11 +2,13 @@ import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, String, DateTime, Float, desc
+from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_, or_
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot.db.chat import Chat
 from hltv_upcoming_events_bot.db.common import Base
+from hltv_upcoming_events_bot.db.news_item_sent import NewsItemSent
 
 
 class NewsItem(Base):
@@ -64,6 +66,45 @@ def get_recent_news_items(since_time_utc: datetime.datetime, max_count: int, ses
         .filter(NewsItem.date_time_utc >= since_time_utc) \
         .order_by(desc(NewsItem.comment_avg_hour)) \
         .limit(max_count)
+
+
+def get_recent_news_items_for_chat(chat_id: Integer, since_time_utc: datetime.datetime, max_count: int,
+                                   session: Session) -> List[NewsItem]:
+    rows = session.query(NewsItem)\
+        .outerjoin(NewsItemSent) \
+        .order_by(desc(NewsItem.comment_avg_hour)) \
+        .filter(
+        and_(NewsItem.date_time_utc >= since_time_utc)) \
+        .add_entity(NewsItemSent) \
+        .all()
+
+    out = list()
+
+    cur_news_item = None
+    cur_news_item_sent_for_chat = False
+    for row in rows:
+        print(row)
+
+        if cur_news_item is None:
+            cur_news_item = row.NewsItem
+        elif row.NewsItem.id != cur_news_item.id:
+            if not cur_news_item_sent_for_chat:
+                out.append(cur_news_item)
+                if len(out) == max_count:
+                    return out
+
+            cur_news_item = row.NewsItem
+            cur_news_item_sent_for_chat = False
+
+        if row.NewsItemSent is not None and row.NewsItemSent.chat_id == chat_id:
+            cur_news_item_sent_for_chat = True
+
+    if not cur_news_item_sent_for_chat:
+        out.append(cur_news_item)
+        if len(out) == max_count:
+            return out
+
+    return out
 
 
 def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title: str, short_description: str,

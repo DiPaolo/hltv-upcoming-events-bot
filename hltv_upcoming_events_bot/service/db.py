@@ -1,5 +1,5 @@
-import logging
 import datetime
+import logging
 from typing import List
 
 from sqlalchemy import and_
@@ -151,12 +151,49 @@ def update_news_item(news_item_domain: domain.NewsItem) -> RetCode:
         return RetCode.OK
 
 
-def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
+# def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
+#     out = list()
+#
+#     with Session(get_engine()) as session:
+#         news_items = db.get_recent_news_items(since_time_utc, max_count if max_count is not None else 20, session)
+#         for news_item in news_items:
+#             out.append(news_item.to_domain_object())
+#
+#     return out
+
+
+def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> List[
+    domain.NewsItem]:
     out = list()
 
     with Session(get_engine()) as session:
-        news_items = db.get_recent_news_items(since_time_utc, max_count if max_count is not None else 20, session)
+        chat = db.get_chat_by_telegram_id(chat_telegram_id, session)
+        if chat is None:
+            logging.error(f'failed to get recent news items for chat (telegram_id={chat_telegram_id}')
+            return out
+
+        news_items = db.get_recent_news_items_for_chat(chat.id, since_time_utc,
+                                                       max_count if max_count is not None else 20, session)
         for news_item in news_items:
             out.append(news_item.to_domain_object())
 
     return out
+
+
+def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int]):
+    with Session(get_engine()) as session:
+        for news_item_domain in news_items_domain:
+            news_item = db.get_news_item_by_url(news_item_domain.url, session)
+            if news_item is None:
+                logging.error(f'failed to mark news item as sent: no such news item (title={news_item_domain.title}, '
+                              f'url={news_item_domain.url})')
+                return
+
+            for sent_telegram_id in sent_telegram_id_list:
+                chat = db.get_chat_by_telegram_id(sent_telegram_id, session)
+                if chat is None:
+                    logging.error(f'failed to mark news item as sent for chat (telegram_id={sent_telegram_id}): '
+                                  f'no such chat')
+                    continue
+
+                db.add_news_item_sent(news_item.id, chat.id, session)

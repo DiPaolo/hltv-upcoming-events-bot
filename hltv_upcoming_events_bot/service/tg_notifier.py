@@ -1,6 +1,7 @@
 import datetime
 import logging
 from enum import Enum
+from typing import Callable, Optional
 
 import schedule
 
@@ -9,7 +10,7 @@ import hltv_upcoming_events_bot.service.news as news_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
-_SEND_MESSAGE_FUNC = None
+_SEND_MESSAGE_FUNC: Optional[Callable] = None
 
 
 class RetCode(Enum):
@@ -19,13 +20,14 @@ class RetCode(Enum):
     ALREADY_EXIST = 4
 
 
-def init(send_message_func):
+def init(send_message_func: Callable):
     global _SEND_MESSAGE_FUNC
 
     if config.DEBUG:
         schedule.every(2).minutes.do(_notify_subscribers_about_matches)
-        schedule.every(3).minutes.do(_notify_subscribers_about_news(24, 5))
+        schedule.every(3).minutes.do(_notify_subscribers_about_news, 24, 5)
     else:
+        # Moscow time (UTC+3)
         schedule.every().day.at("09:10:00").do(_notify_subscribers_about_matches)
         schedule.every().day.at("06:05:00").do(_notify_subscribers_about_news, 24, 5)
         schedule.every().day.at("18:05:00").do(_notify_subscribers_about_news, 12, 3)
@@ -90,11 +92,13 @@ def _notify_subscribers_about_news(for_last_n_hours: int, news_count: int):
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
     try:
-        msg = news_service.get_recent_news_str(datetime.datetime.utcnow() - datetime.timedelta(hours=for_last_n_hours),
-                                               news_count)
         for subs in db_service.get_subscribers():
+            news_items = news_service.get_recent_news_for_chat(
+                subs.telegram_id, datetime.datetime.utcnow() - datetime.timedelta(hours=for_last_n_hours), news_count)
+            msg = news_service.get_recent_news_str(news_items)
             try:
                 _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
+                db_service.mark_news_items_as_sent(news_items, [subs.telegram_id])
             except Exception as ex:
                 logging.error(f'Exception while notifying subscriber about news (telegram_id={subs.telegram_id}): {ex}')
     except Exception as ex:
