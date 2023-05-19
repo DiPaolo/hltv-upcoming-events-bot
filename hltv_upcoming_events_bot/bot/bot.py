@@ -31,7 +31,7 @@ def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
     tg_id = engine.effective_chat.id
 
     recent_news = news_service.get_recent_news_for_chat(
-        tg_id, datetime.datetime.utcnow() - datetime.timedelta(hours=240), 3)
+        tg_id, datetime.datetime.utcnow() - datetime.timedelta(hours=24), 3)
     recent_news_str = news_service.get_recent_news_str(recent_news)
     db_service.mark_news_items_as_sent(recent_news, [tg_id])
 
