@@ -22,6 +22,10 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
     out = list()
 
     article_elems = parser.find_elements('//article')
+    if len(article_elems) == 0:
+        logging.error('failed to parse news: no any news item found')
+        return out
+
     for article_elem in article_elems:
         news_item = _parse_article_elem(article_elem, articles_parser)
         if news_item is None:
@@ -117,15 +121,14 @@ def _parse_news_item_page(url: str, parser: pwp.Parser) -> Optional[str]:
 
     try:
         found = False
-        for i in range(1, 5):
+        for i in range(1, 6):
             parser.goto(url)
             paragraph_elems = parser.find_elements("//div[contains(@class, 'text-content')]/p")
             if len(paragraph_elems) > 0:
                 found = True
                 break
 
-            logging.warning(f'failed to parse news item (url={url}): no paragraphs found')
-            logging.info(f'wait and retry ({i})...')
+            logging.info(f'failed to parse news item (url={url}): no paragraphs found. Wait and retry ({i})...')
             time.sleep(3)
 
         if not found:
