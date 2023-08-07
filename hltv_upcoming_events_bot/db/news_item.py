@@ -43,8 +43,8 @@ def add_news_item(date_time_utc: datetime.date, title: str, short_description: s
                              comment_count=comment_count, comment_avg_hour=comment_avg_hour)
         try:
             session.add(news_item)
-            session.commit()
-            logging.info(f"news item added: {date_time_utc}, '{news_item.title}' ({news_item.url})")
+            # session.commit()
+            # logging.info(f"news item added: {date_time_utc}, '{news_item.title}' ({news_item.url})")
             return news_item
         except Exception as e:
             logging.error(f"failed to add news item (datetime={date_time_utc}, title={title}, url={url}): {e}")

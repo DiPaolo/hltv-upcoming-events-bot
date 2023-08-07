@@ -78,7 +78,8 @@ def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.T
 
 def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]:
     if not parser:
-        parser = Parser(is_fast=True, use_cloudflare_bypass=True)
+        parser = Parser(is_fast=True, use_cloudflare_bypass=True, use_delay=True)
+        # parser = Parser(is_fast=False, use_delay=True)
 
     parser.goto(config.BASE_URL)
 

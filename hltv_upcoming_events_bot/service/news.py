@@ -81,7 +81,4 @@ def _parse_news(to_date_time: datetime.datetime = None) -> List[domain.NewsItem]
 
 
 def _add_news_to_db(news: List[domain.NewsItem]):
-    for news_item in news:
-        ret = db_service.add_news_item(news_item)
-        if RetCode.map_from_db(ret) == RetCode.ALREADY_EXIST:
-            db_service.update_news_item(news_item)
+    db_service.add_news_items(news)

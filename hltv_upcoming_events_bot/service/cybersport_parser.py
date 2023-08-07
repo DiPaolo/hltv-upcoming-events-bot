@@ -15,8 +15,7 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
     if date_time is None:
         date_time = datetime.datetime(1970, 1, 1)
 
-    parser = pwp.Parser(is_fast=True, use_delay=True)
-    articles_parser = pwp.Parser(is_fast=True, use_delay=True)
+    parser = pwp.Parser(is_fast=True, delay_func=pwp.gaussian_low_delay, use_cloudflare_bypass=True)
     parser.goto(_BASE_URL)
 
     out = list()
@@ -25,6 +24,8 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
     if len(article_elems) == 0:
         logging.error('failed to parse news: no any news item found')
         return out
+
+    articles_parser = pwp.Parser(is_fast=True, delay_func=None, use_cloudflare_bypass=True)
 
     for article_elem in article_elems:
         news_item = _parse_article_elem(article_elem, articles_parser)

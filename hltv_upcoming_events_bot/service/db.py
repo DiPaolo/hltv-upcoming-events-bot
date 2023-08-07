@@ -128,18 +128,63 @@ def get_translations_in_period(start_from: int, until_to: int) -> List[domain.Tr
 
 def add_news_item(news_item_domain: domain.NewsItem) -> RetCode:
     with Session(get_engine()) as session:
-        news_item = db.get_news_item_by_url(news_item_domain.url, session)
-        if news_item is not None:
-            return RetCode.ALREADY_EXIST
+        return _add_news_item_with_session(news_item_domain, session)
 
-        news_item = db.add_news_item_from_domain_object(news_item_domain, session)
-        if news_item is None:
-            return RetCode.ERROR
+
+def add_news_items(news_items_domain: List[domain.NewsItem]) -> RetCode:
+    with Session(get_engine()) as session:
+        added_msgs = list()
+        updated_msgs = list()
+        failed_msgs = list()
+        for news_item_domain in news_items_domain:
+            ret = _add_news_item_with_session(news_item_domain, session)
+            msg = f'    {news_item_domain.date_time_utc}, {news_item_domain.title}'
+            if ret == RetCode.OK:
+                added_msgs.append(msg)
+            elif ret == RetCode.ALREADY_EXIST:
+                ret = _update_news_item_with_session(news_item_domain, session)
+                if ret == RetCode.OK:
+                    updated_msgs.append(msg)
+                else:
+                    failed_msgs.append(msg)
+            else:
+                failed_msgs.append(msg)
+
+        session.commit()
+
+        logging.info(f"{len(added_msgs)} news item(s) added{':' if len(added_msgs) > 0 else ''}")
+        for msg in added_msgs:
+            logging.info(f'    {msg}')
+
+        logging.info(f"{len(updated_msgs)} news item(s) updated{':' if len(updated_msgs) > 0 else ''}")
+        for msg in updated_msgs:
+            logging.info(f'    {msg}')
+
+        logging.info(f"{len(failed_msgs)} news item(s) failed to add{':' if len(failed_msgs) > 0 else ''}")
+        for msg in failed_msgs:
+            logging.info(f'    {msg}')
 
         return RetCode.OK
 
 
+def _add_news_item_with_session(news_item_domain: domain.NewsItem, session: Session) -> RetCode:
+    news_item = db.get_news_item_by_url(news_item_domain.url, session)
+    if news_item is not None:
+        return RetCode.ALREADY_EXIST
+
+    news_item = db.add_news_item_from_domain_object(news_item_domain, session)
+    if news_item is None:
+        return RetCode.ERROR
+
+    return RetCode.OK
+
+
 def update_news_item(news_item_domain: domain.NewsItem) -> RetCode:
+    with Session(get_engine()) as session:
+        return _update_news_item_with_session(news_item_domain, session)
+
+
+def _update_news_item_with_session(news_item_domain: domain.NewsItem, session: Session) -> RetCode:
     with Session(get_engine()) as session:
         news_item = db.get_news_item_by_url(news_item_domain.url, session)
         if news_item is None:
