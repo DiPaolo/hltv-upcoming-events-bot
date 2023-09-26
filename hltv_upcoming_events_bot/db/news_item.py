@@ -133,6 +133,6 @@ def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title:
     updated_props_str = ', '.join([f'{p[0]} -> {p[1]}' for p in changed_props]) if len(
         changed_props) > 0 else 'no changes'
 
-    session.commit()
+    # session.commit()
 
     logging.info(f'news item updated: {updated_props_str}')

@@ -181,34 +181,24 @@ def _add_news_item_with_session(news_item_domain: domain.NewsItem, session: Sess
 
 def update_news_item(news_item_domain: domain.NewsItem) -> RetCode:
     with Session(get_engine()) as session:
-        return _update_news_item_with_session(news_item_domain, session)
+        ret = _update_news_item_with_session(news_item_domain, session)
+        session.commit()
+        return ret
 
 
 def _update_news_item_with_session(news_item_domain: domain.NewsItem, session: Session) -> RetCode:
-    with Session(get_engine()) as session:
-        news_item = db.get_news_item_by_url(news_item_domain.url, session)
-        if news_item is None:
-            return RetCode.NOT_EXIST
+    news_item = db.get_news_item_by_url(news_item_domain.url, session)
+    if news_item is None:
+        return RetCode.NOT_EXIST
 
-        db.update_news_item(news_item.id, news_item_domain.date_time_utc, news_item_domain.title,
-                            news_item_domain.short_desc, news_item_domain.comment_count,
-                            news_item_domain.comment_avg_hour, session)
-        return RetCode.OK
-
-
-# def get_recent_news(since_time_utc: datetime.datetime, max_count: int = None) -> List[domain.NewsItem]:
-#     out = list()
-#
-#     with Session(get_engine()) as session:
-#         news_items = db.get_recent_news_items(since_time_utc, max_count if max_count is not None else 20, session)
-#         for news_item in news_items:
-#             out.append(news_item.to_domain_object())
-#
-#     return out
+    db.update_news_item(news_item.id, news_item_domain.date_time_utc, news_item_domain.title,
+                        news_item_domain.short_desc, news_item_domain.comment_count,
+                        news_item_domain.comment_avg_hour, session)
+    return RetCode.OK
 
 
-def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> List[
-    domain.NewsItem]:
+def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> \
+        List[domain.NewsItem]:
     out = list()
 
     with Session(get_engine()) as session:
