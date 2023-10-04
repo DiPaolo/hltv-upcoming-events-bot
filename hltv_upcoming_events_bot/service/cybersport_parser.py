@@ -6,7 +6,7 @@ from typing import List, Optional
 import pywebparser.pywebparser as pwp
 from hltv_upcoming_events_bot.domain import NewsItem
 
-_BASE_URL = 'https://www.cybersport.ru/tags/cs-go?sort=internalRating'
+_BASE_URL = 'https://www.cybersport.ru/tags/cs2?sort=-publishedAt'
 
 
 def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
@@ -32,7 +32,7 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
         if news_item is None:
             continue
 
-        if news_item.date_time_utc.astimezone(datetime.timezone.utc) < date_time.astimezone(datetime.timezone.utc):
+        if news_item.date_time_utc.astimezone(datetime.timezone.utc) < date_time.replace(tzinfo=datetime.timezone.utc):
             break
 
         out.append(news_item)
