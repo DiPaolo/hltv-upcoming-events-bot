@@ -85,6 +85,13 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
         logging.error("failed to parse article: URL link is either missed in the element or it's empty")
         return None
 
+    # to skip advertisement materials;
+    # they are trying to be opened in a new tab;
+    # we were stuck at such item (specifically, https://cologne2024.cybersport.ru/)
+    target = link_elem.get_attribute('target')
+    if target and target == '_blank':
+        return None
+
     #
     # comment count + comment_avg_hour
     #
