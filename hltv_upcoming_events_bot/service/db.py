@@ -3,7 +3,7 @@ import logging
 from typing import List
 
 from sqlalchemy import and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from hltv_upcoming_events_bot import db
 from hltv_upcoming_events_bot import domain
@@ -197,11 +197,13 @@ def _update_news_item_with_session(news_item_domain: domain.NewsItem, session: S
     return RetCode.OK
 
 
-def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> \
+def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None, db_engine = None) -> \
         List[domain.NewsItem]:
     out = list()
 
-    with Session(get_engine()) as session:
+    session_maker = sessionmaker(db_engine if db_engine else get_engine())
+
+    with session_maker() as session:
         chat = db.get_chat_by_telegram_id(chat_telegram_id, session)
         if chat is None:
             logging.error(f'failed to get recent news items for chat (telegram_id={chat_telegram_id}')
@@ -215,8 +217,10 @@ def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.dat
     return out
 
 
-def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int]):
-    with Session(get_engine()) as session:
+def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int], db_engine = None):
+    session_maker = sessionmaker(db_engine if db_engine else get_engine())
+
+    with session_maker() as session:
         for news_item_domain in news_items_domain:
             news_item = db.get_news_item_by_url(news_item_domain.url, session)
             if news_item is None:

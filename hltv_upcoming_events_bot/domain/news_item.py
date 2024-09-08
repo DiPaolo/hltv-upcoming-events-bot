@@ -10,3 +10,6 @@ class NewsItem(object):
     url: str
     comment_count: int
     comment_avg_hour: float
+
+    def __hash__(self):
+        return hash(self.url)
