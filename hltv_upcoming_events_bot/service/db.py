@@ -235,4 +235,6 @@ def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_teleg
                                   f'no such chat')
                     continue
 
-                db.add_news_item_sent(news_item.id, chat.id, session)
+                # add if not added
+                if len(db.get_news_item_sent_by_news_item_id(news_item.id, session)) == 0:
+                    db.add_news_item_sent(news_item.id, chat.id, session)
