@@ -2,7 +2,7 @@ import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_
+from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_, or_
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
@@ -72,12 +72,12 @@ def get_recent_news_items_for_chat(chat_id: Integer, since_time_utc: datetime.da
     rows = session.query(NewsItem) \
         .outerjoin(NewsItemSent) \
         .order_by(desc(NewsItem.comment_avg_hour)) \
-        .where(NewsItemSent.id == None) \
+        .where(or_(NewsItemSent.id == None, NewsItemSent.chat_id != chat_id)) \
         .filter(and_(NewsItem.date_time_utc >= since_time_utc)) \
-        .add_entity(NewsItemSent) \
+        .limit(max_count) \
         .all()
 
-    return [r.NewsItem for r in rows]
+    return rows
 
 
 def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title: str, short_description: str,
