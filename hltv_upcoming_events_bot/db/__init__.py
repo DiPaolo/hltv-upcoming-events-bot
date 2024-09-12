@@ -4,7 +4,7 @@ from .match import Match, add_match_from_domain_object, get_match_id_by_url
 from .match_state import get_match_state, get_match_state_by_name
 from .news_item import add_news_item, add_news_item_from_domain_object, get_news_item_by_url, get_recent_news_items, \
     get_recent_news_items_for_chat, update_news_item
-from .news_item_sent import add_news_item_sent, get_news_item_sent_by_news_item_id
+from .news_item_sent import add_news_item_sent, get_news_item_sent_by_news_item_id_and_chat_id
 from .ret_code import RetCode
 from .subscriber import add_subscriber_from_domain_object, delete_subscriber_by_id, get_subscribers, \
     get_subscriber_by_telegram_id

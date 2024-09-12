@@ -72,12 +72,35 @@ def get_recent_news_items_for_chat(chat_id: Integer, since_time_utc: datetime.da
     rows = session.query(NewsItem) \
         .outerjoin(NewsItemSent) \
         .order_by(desc(NewsItem.comment_avg_hour)) \
-        .where(or_(NewsItemSent.id == None, NewsItemSent.chat_id != chat_id)) \
         .filter(and_(NewsItem.date_time_utc >= since_time_utc)) \
-        .limit(max_count) \
+        .add_entity(NewsItemSent) \
         .all()
 
-    return rows
+    out = list()
+
+    cur_news_item = None
+    cur_news_item_sent_for_chat = False
+    for row in rows:
+        if cur_news_item is None:
+            cur_news_item = row.NewsItem
+        elif row.NewsItem.id != cur_news_item.id:
+            if not cur_news_item_sent_for_chat and cur_news_item is not None:
+                out.append(cur_news_item)
+                if len(out) == max_count:
+                    return out
+
+            cur_news_item = row.NewsItem
+            cur_news_item_sent_for_chat = False
+
+        if row.NewsItemSent is not None and row.NewsItemSent.chat_id == chat_id:
+            cur_news_item_sent_for_chat = True
+
+    if not cur_news_item_sent_for_chat and cur_news_item is not None:
+        out.append(cur_news_item)
+        if len(out) == max_count:
+            return out
+
+    return out
 
 
 def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title: str, short_description: str,

@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, and_
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot.db.common import Base
@@ -45,8 +45,9 @@ def get_news_item_sent_all(Integer, session: Session) -> List[NewsItemSent]:
         .all()
 
 
-def get_news_item_sent_by_news_item_id(news_item_id: Integer, session: Session) -> List[NewsItemSent]:
+def get_news_item_sent_by_news_item_id_and_chat_id(news_item_id: Integer, chat_id: Integer, session: Session) -> List[
+    NewsItemSent]:
     return session \
         .query(NewsItemSent) \
-        .filter(NewsItemSent.news_item_id == news_item_id) \
+        .filter(and_(NewsItemSent.news_item_id == news_item_id, NewsItemSent.chat_id == chat_id)) \
         .all()
