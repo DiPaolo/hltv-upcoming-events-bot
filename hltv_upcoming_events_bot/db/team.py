@@ -1,11 +1,13 @@
 import logging
-from typing import Optional, Dict
+from typing import Optional
 
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
 
 
 class Team(Base):
@@ -38,10 +40,10 @@ def add_team(name: str, url: str, session: Session) -> Optional[Integer]:
         team = Team(name=name, url=url)
         session.add(team)
         session.commit()
-        logging.info(f"Team added (id={team.id}, name={team.name})")
+        _logger.info(f"Team added (id={team.id}, name={team.name})")
         return team.id
     except Exception as e:
-        logging.error(f"Failed to add team '{name}': {e}")
+        _logger.error(f"Failed to add team '{name}': {e}")
         return None
 
 
@@ -53,11 +55,10 @@ def get_team_by_name(name: str, session: Session) -> Optional[Team]:
     try:
         team = session.query(Team).filter(Team.name == name).first()
     except BaseException as e:
-        logging.error(f"failed to get team (name={name}) from DB: {e}")
+        _logger.error(f"failed to get team (name={name}) from DB: {e}")
         return None
 
     return team
-
 
 # def update_team(team_id: Integer, props: Dict):
 #     with Session(get_engine()) as session:

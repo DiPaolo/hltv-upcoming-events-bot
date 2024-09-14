@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot.db.common import Base
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class Translation(Base):
     __tablename__ = "translation"
@@ -38,29 +40,28 @@ def add_translation(match_id: Integer, streamer_id: Integer, session: Session) -
 
     try:
         session.commit()
-        logging.info(f"Translation added (id={translation.id}, match_id={translation.match_id},"
+        _logger.info(f"Translation added (id={translation.id}, match_id={translation.match_id},"
                      f" streamer_id={translation.streamer_id})")
         return translation.id
     except Exception as e:
-        logging.error(f"Failed to add translation for match (id='{match_id}') and streamer (id='{streamer_id}'): {e}")
+        _logger.error(f"Failed to add translation for match (id='{match_id}') and streamer (id='{streamer_id}'): {e}")
         return None
 
 
 def get_translations_by_match_id(match_id: Integer, session: Session) -> List[Translation]:
-    return session\
-        .query(Translation)\
-        .filter(Translation.match_id == match_id)\
+    return session \
+        .query(Translation) \
+        .filter(Translation.match_id == match_id) \
         .all()
 
 
 def get_translation(match_id: Integer, streamer_id: Integer, session: Session) -> Optional[Integer]:
-    translation = session\
-        .query(Translation)\
-        .filter(and_(Translation.match_id == match_id, Translation.streamer_id == streamer_id))\
+    translation = session \
+        .query(Translation) \
+        .filter(and_(Translation.match_id == match_id, Translation.streamer_id == streamer_id)) \
         .first()
 
     if translation is None:
         return None
 
     return translation.id
-

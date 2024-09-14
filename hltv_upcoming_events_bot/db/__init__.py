@@ -14,3 +14,4 @@ from .tournament import add_tournament_from_domain_object, get_tournament, get_t
 from .translation import add_translation, get_translations_by_match_id
 from .user import add_user, get_user_by_telegram_id, get_user, get_users
 from .user_request import add_user_request, get_recent_user_requests
+

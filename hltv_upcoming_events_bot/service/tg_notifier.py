@@ -11,6 +11,7 @@ from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.service.matches import get_upcoming_matches_str
 
 _SEND_MESSAGE_FUNC: Optional[Callable] = None
+_logger = logging.getLogger('hltv_upcoming_events_bot.service.tg_notifier')
 
 
 class RetCode(Enum):
@@ -44,7 +45,7 @@ def add_subscriber(tg_id: int) -> RetCode:
     elif ret == db_service.RetCode.ALREADY_EXIST:
         return RetCode.ALREADY_EXIST
     else:
-        logging.error(f'unhandled value returned from subscribe_chat_by_telegram_id(): {ret}')
+        _logger.error(f'unhandled value returned from subscribe_chat_by_telegram_id(): {ret}')
         return RetCode.ERROR
 
 
@@ -57,15 +58,15 @@ def remove_subscriber(tg_id: int):
     elif ret == db_service.RetCode.NOT_EXIST:
         return RetCode.NOT_EXIST
     else:
-        logging.error(f'unhandled value returned from unsubscribe_chat_by_telegram_id(): {ret}')
+        _logger.error(f'unhandled value returned from unsubscribe_chat_by_telegram_id(): {ret}')
         return RetCode.ERROR
 
 
 def _notify_subscribers_about_matches():
-    logging.getLogger(__name__).info('Notify subscribers about matches')
+    _logger.info('Notify subscribers about matches')
 
     if not _SEND_MESSAGE_FUNC:
-        logging.getLogger(__name__).error('Failed to notify subscribers about matches')
+        _logger.error('Failed to notify subscribers about matches')
         return
 
     # use try/except because if something goes wrong inside, the scheduler will
@@ -76,30 +77,33 @@ def _notify_subscribers_about_matches():
             try:
                 _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
             except Exception as ex:
-                logging.error(
+                _logger.error(
                     f'Exception while notifying subscriber about matches (telegram_id={subs.telegram_id}): {ex}')
     except Exception as ex:
-        logging.error(f'Exception while getting upcoming matches text: {ex}')
+        _logger.error(f'Exception while getting upcoming matches text: {ex}')
 
 
 def _notify_subscribers_about_news(for_last_n_hours: int, news_count: int):
-    logging.getLogger(__name__).info('Notify subscribers about news')
+    _logger.info('Notify subscribers about news')
 
     if not _SEND_MESSAGE_FUNC:
-        logging.getLogger(__name__).error('Failed to notify subscribers about news')
+        _logger.error('Failed to notify subscribers about news')
         return
 
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
-    try:
-        for subs in db_service.get_subscribers():
+    for subs in db_service.get_subscribers():
+        try:
             news_items = news_service.get_recent_news_for_chat(
                 subs.telegram_id, datetime.datetime.utcnow() - datetime.timedelta(hours=for_last_n_hours), news_count)
-            msg = news_service.get_recent_news_str(news_items)
-            try:
-                _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
-                db_service.mark_news_items_as_sent(news_items, [subs.telegram_id])
-            except Exception as ex:
-                logging.error(f'Exception while notifying subscriber about news (telegram_id={subs.telegram_id}): {ex}')
-    except Exception as ex:
-        logging.error(f'Exception while getting recent news text: {ex}')
+        except Exception as ex:
+            _logger.error(f'Exception while getting recent news text: {ex}')
+            continue
+
+        msg = news_service.get_recent_news_str(news_items)
+
+        try:
+            _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
+            db_service.mark_news_items_as_sent(news_items, [subs.telegram_id])
+        except Exception as ex:
+            _logger.error(f'Exception while notifying subscriber about news (telegram_id={subs.telegram_id}): {ex}')

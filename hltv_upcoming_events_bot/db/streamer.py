@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 import hltv_upcoming_events_bot.domain as domain
 from hltv_upcoming_events_bot.db.common import Base
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class Streamer(Base):
     __tablename__ = "streamer"
@@ -36,10 +38,10 @@ def add_streamer(name: str, language: str, url: str, session: Session) -> Option
 
     try:
         session.commit()
-        logging.info(f"Streamer added (id={streamer.id}, name={streamer.name}, lang={streamer.language})")
+        _logger.info(f"Streamer added (id={streamer.id}, name={streamer.name}, lang={streamer.language})")
         return streamer
     except Exception as e:
-        logging.error(f"Failed to add streamer '{name}' with language '{language}': {e}")
+        _logger.error(f"Failed to add streamer '{name}' with language '{language}': {e}")
         return None
 
 

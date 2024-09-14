@@ -2,6 +2,8 @@ import logging
 from enum import Enum
 from typing import List
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.domain')
+
 
 class MatchState(Enum):
     UNKNOWN = 0
@@ -24,7 +26,7 @@ def get_match_state_name(state: MatchState) -> str:
     if state in _MATCH_STATE_NAMES_ENG:
         return _MATCH_STATE_NAMES_ENG[state]
 
-    logging.error(f'Failed to get match state name for match state (={state}): no such element found')
+    _logger.error(f'Failed to get match state name for match state (={state}): no such element found')
     return _MATCH_STATE_NAMES_ENG[MatchState.UNKNOWN]
 
 
@@ -33,7 +35,7 @@ def get_match_state_by_name(name: str) -> MatchState:
         if value == name:
             return key
 
-    logging.error(f'Failed to get match state by name (={name}): no such element found')
+    _logger.error(f'Failed to get match state by name (={name}): no such element found')
     return MatchState.UNKNOWN
 
 

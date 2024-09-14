@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 import hltv_upcoming_events_bot.domain as domain
 from hltv_upcoming_events_bot.db.common import Base
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class MatchState(Base):
     __tablename__ = "match_state"
@@ -39,9 +41,9 @@ def add_match_state(name: str, session: Session) -> Optional[Integer]:
     # created at the beginning of the function
     try:
         session.commit()
-        logging.info(f"Match state added (id={match_state.id}, name={match_state.name})")
+        _logger.info(f"Match state added (id={match_state.id}, name={match_state.name})")
     except Exception as e:
-        logging.error(f"Failed to add match state '{name}': {e}")
+        _logger.error(f"Failed to add match state '{name}': {e}")
 
     return match_state.id
 
@@ -54,5 +56,5 @@ def get_match_state_by_name(name: str, session: Session) -> Optional[MatchState]
     try:
         return session.query(MatchState).filter(MatchState.name == name).first()
     except BaseException as e:
-        logging.error(f"Failed to get match state (name={name}) from DB: {e}")
+        _logger.error(f"Failed to get match state (name={name}) from DB: {e}")
         return None

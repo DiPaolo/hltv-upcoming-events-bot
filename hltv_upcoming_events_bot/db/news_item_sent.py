@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot.db.common import Base
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class NewsItemSent(Base):
     __tablename__ = "news_item_sent"
@@ -31,9 +33,9 @@ def add_news_item_sent(news_item_id: Integer, chat_id: Integer, session: Session
     try:
         session.add(news_item_sent)
         session.commit()
-        logging.info(f"news item sent added: news_item (id={news_item_id}), chat (id={chat_id})")
+        _logger.info(f"news item sent added: news_item (id={news_item_id}), chat (id={chat_id})")
     except Exception as e:
-        logging.error(f"failed to add news item sent (news_item_id={news_item_id}, chat_id={chat_id}): {e}")
+        _logger.error(f"failed to add news item sent (news_item_id={news_item_id}, chat_id={chat_id}): {e}")
         return None
 
     return news_item_sent.id

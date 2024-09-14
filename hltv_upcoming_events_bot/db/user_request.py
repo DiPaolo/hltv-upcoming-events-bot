@@ -9,6 +9,8 @@ from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import get_chat, get_user
 from hltv_upcoming_events_bot.db.common import Base
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class UserRequest(Base):
     __tablename__ = "user_request"
@@ -41,11 +43,11 @@ def add_user_request(chat_id: Integer, user_id: Integer, utc_time: datetime.date
     try:
         session.add(user_request)
         session.commit()
-        logging.info(
+        _logger.info(
             f"User request added: chat (id={chat_id}), user (id={user_id}), utc_time={utc_time}, "
             f"telegram_utc_time={telegram_utc_time}, telegram_message_id={telegram_message_id}, {text}")
     except Exception as e:
-        logging.error(f"failed to add user request (chat_id={chat_id}, user_id={user_id}): {e}")
+        _logger.error(f"failed to add user request (chat_id={chat_id}, user_id={user_id}): {e}")
 
     return user_request.id
 

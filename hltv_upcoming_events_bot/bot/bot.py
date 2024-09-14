@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import telegram
 from telegram import ParseMode, Update
@@ -12,21 +13,23 @@ import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.bot.utils import log_command
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.bot')
+
 
 def start_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     engine.message.reply_text(_get_help_text())
 
 
 def get_upcoming_matches_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
 
     upcoming_matches_str = matches_service.get_upcoming_matches_str()
     send_message(engine.effective_chat.id, upcoming_matches_str)
 
 
 def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
 
     tg_id = engine.effective_chat.id
 
@@ -39,7 +42,7 @@ def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     ret = tg_notifier_service.add_subscriber(engine.effective_chat.id)
     if ret == tg_notifier_service.RetCode.OK:
         send_message(engine.effective_chat.id, 'Подписали вас. Завтра придет уведомление о матчах')
@@ -50,7 +53,7 @@ def subscribe_command(engine: Update, context: CallbackContext) -> None:
 
 
 def unsubscribe_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     ret = tg_notifier_service.remove_subscriber(engine.effective_chat.id)
     if ret == tg_notifier_service.RetCode.OK:
         send_message(engine.effective_chat.id, 'Отписали вас от ежедневных обновлений. Нам очень жаль :(')

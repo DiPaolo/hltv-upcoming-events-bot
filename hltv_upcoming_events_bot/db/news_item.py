@@ -2,12 +2,14 @@ import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_, or_
+from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db.common import Base
 from hltv_upcoming_events_bot.db.news_item_sent import NewsItemSent
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
 
 
 class NewsItem(Base):
@@ -43,10 +45,10 @@ def add_news_item(date_time_utc: datetime.date, title: str, short_description: s
         try:
             session.add(news_item)
             # session.commit()
-            # logging.info(f"news item added: {date_time_utc}, '{news_item.title}' ({news_item.url})")
+            # _logger.info(f"news item added: {date_time_utc}, '{news_item.title}' ({news_item.url})")
             return news_item
         except Exception as e:
-            logging.error(f"failed to add news item (datetime={date_time_utc}, title={title}, url={url}): {e}")
+            _logger.error(f"failed to add news item (datetime={date_time_utc}, title={title}, url={url}): {e}")
             return None
 
     return news_item
@@ -131,4 +133,4 @@ def update_news_item(news_item_id: Integer, date_time_utc: datetime.date, title:
 
     # session.commit()
 
-    logging.info(f'news item updated: {updated_props_str}')
+    _logger.info(f'news item updated: {updated_props_str}')

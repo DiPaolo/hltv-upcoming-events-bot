@@ -33,10 +33,10 @@ def add_chat(telegram_id: int, title: str, type: str, session: Session) -> Optio
     try:
         session.add(chat)
         session.commit()
-        logging.info(
+        _logger.info(
             f"chat added (id={chat.id}, telegram_id={chat.telegram_id}, title={chat.title}, type={chat.type})")
     except Exception as e:
-        logging.error(f"failed to add chat (title={title}, telegram_id={telegram_id}): {e}")
+        _logger.error(f"failed to add chat (title={title}, telegram_id={telegram_id}): {e}")
 
     return chat.id
 

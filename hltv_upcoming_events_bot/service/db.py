@@ -10,6 +10,8 @@ from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import RetCode
 from hltv_upcoming_events_bot.db.common import get_engine
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.service.db')
+
 
 def add_match(match: domain.Match):
     with Session(get_engine()) as session:
@@ -52,7 +54,7 @@ def subscribe_chat_by_telegram_id(tg_id: int) -> RetCode:
 
         chat = db.get_chat_by_telegram_id(tg_id, session)
         if chat is None:
-            logging.error(f'failed to subscribe user/chat: no such chat (telegram_id={tg_id}) in DB')
+            _logger.error(f'failed to subscribe user/chat: no such chat (telegram_id={tg_id}) in DB')
             return RetCode.ERROR
 
         ret = db.add_subscriber_from_domain_object(chat, session)
@@ -152,17 +154,17 @@ def add_news_items(news_items_domain: List[domain.NewsItem]) -> RetCode:
 
         session.commit()
 
-        logging.info(f"{len(added_msgs)} news item(s) added{':' if len(added_msgs) > 0 else ''}")
+        _logger.info(f"{len(added_msgs)} news item(s) added{':' if len(added_msgs) > 0 else ''}")
         for msg in added_msgs:
-            logging.info(f'    {msg}')
+            _logger.info(f'    {msg}')
 
-        logging.info(f"{len(updated_msgs)} news item(s) updated{':' if len(updated_msgs) > 0 else ''}")
+        _logger.info(f"{len(updated_msgs)} news item(s) updated{':' if len(updated_msgs) > 0 else ''}")
         for msg in updated_msgs:
-            logging.info(f'    {msg}')
+            _logger.info(f'    {msg}')
 
-        logging.info(f"{len(failed_msgs)} news item(s) failed to add{':' if len(failed_msgs) > 0 else ''}")
+        _logger.info(f"{len(failed_msgs)} news item(s) failed to add{':' if len(failed_msgs) > 0 else ''}")
         for msg in failed_msgs:
-            logging.info(f'    {msg}')
+            _logger.info(f'    {msg}')
 
         return RetCode.OK
 
@@ -197,7 +199,8 @@ def _update_news_item_with_session(news_item_domain: domain.NewsItem, session: S
     return RetCode.OK
 
 
-def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None, db_engine = None) -> \
+def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None,
+                             db_engine=None) -> \
         List[domain.NewsItem]:
     out = list()
 
@@ -206,7 +209,7 @@ def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.dat
     with session_maker() as session:
         chat = db.get_chat_by_telegram_id(chat_telegram_id, session)
         if chat is None:
-            logging.error(f'failed to get recent news items for chat (telegram_id={chat_telegram_id}')
+            _logger.error(f'failed to get recent news items for chat (telegram_id={chat_telegram_id}')
             return out
 
         news_items = db.get_recent_news_items_for_chat(chat.id, since_time_utc,
@@ -217,21 +220,21 @@ def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.dat
     return out
 
 
-def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int], db_engine = None):
+def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int], db_engine=None):
     session_maker = sessionmaker(db_engine if db_engine else get_engine())
 
     with session_maker() as session:
         for news_item_domain in news_items_domain:
             news_item = db.get_news_item_by_url(news_item_domain.url, session)
             if news_item is None:
-                logging.error(f'failed to mark news item as sent: no such news item (title={news_item_domain.title}, '
+                _logger.error(f'failed to mark news item as sent: no such news item (title={news_item_domain.title}, '
                               f'url={news_item_domain.url})')
                 return
 
             for sent_telegram_id in sent_telegram_id_list:
                 chat = db.get_chat_by_telegram_id(sent_telegram_id, session)
                 if chat is None:
-                    logging.error(f'failed to mark news item as sent for chat (telegram_id={sent_telegram_id}): '
+                    _logger.error(f'failed to mark news item as sent for chat (telegram_id={sent_telegram_id}): '
                                   f'no such chat')
                     continue
 

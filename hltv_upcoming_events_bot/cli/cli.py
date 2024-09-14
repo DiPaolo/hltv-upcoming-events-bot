@@ -9,11 +9,13 @@ import click as click
 import hltv_upcoming_events_bot.bot as bot_impl
 import hltv_upcoming_events_bot.service.db as db_service
 import hltv_upcoming_events_bot.service.matches as matches_service
-import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 import hltv_upcoming_events_bot.service.news as news_service
+import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.cli.schedule_thread import ScheduleThread
 from hltv_upcoming_events_bot.db import init_db
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.cli')
 
 
 @click.group()
@@ -62,7 +64,7 @@ def start(token: str):
         config.BOT_TOKEN = token
 
     if config.BOT_TOKEN is None:
-        logging.error('Bot token is not set')
+        _logger.error('Bot token is not set')
         click.echo("ERROR: Bot token is not set. Please specify it via environment variable or specify "
                    "'-t' / '--token' command line argument")
         sys.exit(1)
@@ -77,10 +79,10 @@ def start(token: str):
     try:
         bot_impl.start(config.BOT_TOKEN)
     except KeyboardInterrupt:
-        logging.info('Keyboard interrupt. Successfully exiting application')
+        _logger.info('Keyboard interrupt. Successfully exiting application')
         sys.exit(0)
     except Exception as ex:
-        logging.critical(f'Exiting application: {ex}')
+        _logger.critical(f'Exiting application: {ex}')
         sys.exit(1)
 
 

@@ -9,6 +9,7 @@ from hltv_upcoming_events_bot import config, domain
 from hltv_upcoming_events_bot.service import hltv_parser
 
 _CACHED_MATCHES: Optional[List] = None
+_logger = logging.getLogger('hltv_upcoming_events_bot.service.matches')
 
 
 def init():
@@ -16,7 +17,7 @@ def init():
 
 
 def get_upcoming_translations() -> List[domain.Translation]:
-    logging.info('Getting upcoming matches from database')
+    _logger.info('Getting upcoming matches from database')
 
     cur_time_utc = datetime.datetime.utcnow()
     cur_time_utc_timestamp = round(cur_time_utc.timestamp())
@@ -86,7 +87,7 @@ def _setup_schedule():
 
 
 def populate_translations():
-    logging.info("Getting the list of today's matches")
+    _logger.info("Getting the list of today's matches")
 
     translations = _parse_upcoming_translations()
     _add_translations_to_db(translations)
@@ -99,7 +100,7 @@ def _parse_upcoming_translations() -> List[domain.Translation]:
     try:
         translations = hltv_parser.get_upcoming_translations()
     except Exception as ex:
-        logging.error(f'Exception while updating cache with upcoming matches: failed to get upcoming matches: {ex}')
+        _logger.error(f'Exception while updating cache with upcoming matches: failed to get upcoming matches: {ex}')
 
     return translations
 
@@ -109,6 +110,6 @@ def _add_translations_to_db(translations: List[domain.Translation]):
         try:
             db_service.add_translation(trans.match, trans.streamer)
         except Exception as ex:
-            logging.error(
+            _logger.error(
                 f'Exception while updating cache with upcoming matches: failed to add translation '
                 f'(match_url={trans.match.url}, streamer_url={trans.streamer.url}): {ex}')

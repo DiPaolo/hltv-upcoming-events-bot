@@ -7,10 +7,11 @@ import pywebparser.pywebparser as pwp
 from hltv_upcoming_events_bot.domain import NewsItem
 
 _BASE_URL = 'https://www.cybersport.ru/tags/cs2?sort=-publishedAt'
+_logger = logging.getLogger('hltv_upcoming_events_bot.service.cybersport_parser')
 
 
 def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
-    logging.info(f'Parse news until {date_time}')
+    _logger.info(f'Parse news until {date_time}')
 
     if date_time is None:
         date_time = datetime.datetime(1970, 1, 1)
@@ -22,7 +23,7 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
 
     article_elems = parser.find_elements('//article')
     if len(article_elems) == 0:
-        logging.error('failed to parse news: no any news item found')
+        _logger.error('failed to parse news: no any news item found')
         return out
 
     articles_parser = pwp.Parser(is_fast=True, delay_func=None, use_cloudflare_bypass=True)
@@ -47,17 +48,17 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
 
     link_elem = elem.find_element('./a')
     if link_elem is None:
-        logging.error("failed to parse article: couldn't find link element")
+        _logger.error("failed to parse article: couldn't find link element")
         return None
 
     date_elem = link_elem.find_element('.//time')
     if date_elem is None:
-        logging.error("failed to parse article: couldn't find time element")
+        _logger.error("failed to parse article: couldn't find time element")
         return None
 
     date_time_value = date_elem.get_attribute('datetime')
     if not date_time_value:
-        logging.error("failed to parse article: datetime attribute is either missed in the element or it's empty")
+        _logger.error("failed to parse article: datetime attribute is either missed in the element or it's empty")
         return None
 
     date_time_utc = datetime.datetime.fromisoformat(date_time_value).astimezone(datetime.timezone.utc)
@@ -68,12 +69,12 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
 
     title_elem = elem.find_element(".//h3[@class='title_nSS03']")
     if title_elem is None:
-        logging.error("failed to parse article: couldn't find title element")
+        _logger.error("failed to parse article: couldn't find title element")
         return None
 
     title = title_elem.text
     if not title:
-        logging.error("failed to parse article: title is empty")
+        _logger.error("failed to parse article: title is empty")
         return None
 
     #
@@ -82,7 +83,7 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
 
     url = link_elem.get_attribute('href')
     if not url:
-        logging.error("failed to parse article: URL link is either missed in the element or it's empty")
+        _logger.error("failed to parse article: URL link is either missed in the element or it's empty")
         return None
 
     # to skip advertisement materials;
@@ -101,7 +102,7 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
 
     comment_count_elem = elem.find_element(".//div[@class='count_7Zuhe']")
     if comment_count_elem is None:
-        logging.warning(f'failed to parse comment count for news item (title={title}): ')
+        _logger.warning(f'failed to parse comment count for news item (title={title}): ')
     else:
         comment_count = int(comment_count_elem.text)
         duration = datetime.datetime.now().astimezone(datetime.timezone.utc) - date_time_utc
@@ -114,7 +115,7 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
 
     short_desc = _parse_news_item_page(url, articles_parser)
     if not url:
-        logging.warning("failed to parse article: failed to get short description")
+        _logger.warning("failed to parse article: failed to get short description")
 
     return NewsItem(date_time_utc=date_time_utc, title=title, short_desc=short_desc, url=url,
                     comment_count=comment_count, comment_avg_hour=comment_avg_hour)
@@ -125,7 +126,7 @@ def _parse_news_item_page(url: str, parser: pwp.Parser) -> Optional[str]:
     Returns: short description or None
     """
 
-    logging.info(f'Parse news item page {url}')
+    _logger.info(f'Parse news item page {url}')
 
     try:
         found = False
@@ -136,24 +137,24 @@ def _parse_news_item_page(url: str, parser: pwp.Parser) -> Optional[str]:
                 found = True
                 break
 
-            logging.info(f'failed to parse news item (url={url}): no paragraphs found. Wait and retry ({i})...')
+            _logger.info(f'failed to parse news item (url={url}): no paragraphs found. Wait and retry ({i})...')
             time.sleep(3)
 
         if not found:
-            logging.error(f'failed to parse news item (url={url}): no paragraphs found')
+            _logger.error(f'failed to parse news item (url={url}): no paragraphs found')
             return None
     except Exception as ex:
-        logging.error(f"failed to parse news item's paragraphs: {ex}")
+        _logger.error(f"failed to parse news item's paragraphs: {ex}")
         return None
 
     # takes the first paragraph
     try:
         short_desc = paragraph_elems[0].text
         if not short_desc:
-            logging.error(f"failed to parse news item (url={url}): first paragraph is empty")
+            _logger.error(f"failed to parse news item (url={url}): first paragraph is empty")
             return None
     except:
-        logging.error('!!! short_desc !!!')
+        _logger.error('!!! short_desc !!!')
         return None
 
     return short_desc

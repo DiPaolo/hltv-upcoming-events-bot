@@ -1,15 +1,17 @@
 import datetime
 import logging
-from typing import Optional, List
+from typing import Optional
 
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger, and_
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, BigInteger
 from sqlalchemy.orm import Session
 
 import hltv_upcoming_events_bot.db as db
 from hltv_upcoming_events_bot import domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
 from hltv_upcoming_events_bot.db.match_stars import MatchStars
 from hltv_upcoming_events_bot.db.team import Team, add_team, get_team
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
 
 
 class Match(Base):
@@ -57,7 +59,7 @@ def add_match_from_domain_object(match: domain.match.Match, session: Session) ->
         if tournament_id is None:
             tournament_id = db.tournament.get_unknown_tournament_id(session)
             if tournament_id is None:
-                logging.error(
+                _logger.error(
                     f'failed to add match from domain object: failed to found tournament (name={match.tournament.name})')
                 return None
 
@@ -72,12 +74,12 @@ def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_st
               state_id: Integer, url: str, session: Session) -> Optional[Match]:
     team1 = get_team(team1_id, session)
     if team1 is None:
-        logging.error(f'failed to add match because team1 (id={team1_id}) is not found')
+        _logger.error(f'failed to add match because team1 (id={team1_id}) is not found')
         return None
 
     team2 = get_team(team2_id, session)
     if team2 is None:
-        logging.error(f'failed to add match because team2 (id={team2_id}) is not found')
+        _logger.error(f'failed to add match because team2 (id={team2_id}) is not found')
         return None
 
     match = get_match_by_url(url, session)
@@ -87,12 +89,12 @@ def add_match(team1_id: Integer, team2_id: Integer, unix_time_sec: int, match_st
         try:
             session.add(match)
             session.commit()
-            logging.info(
+            _logger.info(
                 f"Match added: team1 (id={team1.id}, name={team1.name}) vs team2 (id={team2.id}, name={team2.name}) "
                 f"with the status (id={state_id}) at {str(datetime.datetime.fromtimestamp(match.unix_time_utc_sec))}")
             return match
         except Exception as e:
-            logging.error(f"Failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
+            _logger.error(f"Failed to add match between team1 (id={team1_id}) and team2 (id={team2_id}) at "
                           f"{datetime.datetime.fromtimestamp(unix_time_sec)}: {e}")
             return None
 
@@ -113,7 +115,6 @@ def get_match_id_by_url(match_url: str, session: Session) -> Optional[Integer]:
     if ret is None:
         return None
     return ret.id
-
 
 # def get_upcoming_matches_in_datetime_interval(start_from: int, until_to: int, session) -> List[Match]:
 #     return session.query(Match)\

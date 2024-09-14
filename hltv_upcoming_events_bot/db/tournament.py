@@ -9,6 +9,8 @@ from hltv_upcoming_events_bot.db.common import Base
 
 _UNKNOWN_TOURNAMENT_NAME = 'Unknown'
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
+
 
 class Tournament(Base):
     __tablename__ = "tournament"
@@ -34,10 +36,10 @@ def add_tournament(name: str, url: str, hltv_id: int, session: Session) -> Optio
 
     try:
         session.commit()
-        logging.info(
+        _logger.info(
             f"Tournament added: name={tournament.name}, url={tournament.url}")
     except Exception as e:
-        logging.error(f"Failed to add tournament (name={tournament.name}, url={tournament.url}): {e}")
+        _logger.error(f"Failed to add tournament (name={tournament.name}, url={tournament.url}): {e}")
         session.close()
         return None
 
@@ -52,7 +54,7 @@ def get_tournament_id_by_name(name: str, session: Session) -> Optional[Integer]:
     try:
         tournament = session.query(Tournament).filter(Tournament.name == name).first()
     except BaseException as e:
-        logging.error(f"failed to get tournament (name={name}) from DB: {e}")
+        _logger.error(f"failed to get tournament (name={name}) from DB: {e}")
         return None
 
     if tournament is None:

@@ -1,12 +1,14 @@
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from sqlalchemy import Boolean, Column, Integer, String, BigInteger
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
-from hltv_upcoming_events_bot.db.common import Base, get_engine
+from hltv_upcoming_events_bot.db.common import Base
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
 
 
 class User(Base):
@@ -42,7 +44,7 @@ def add_user(telegram_id: int, username: str, first_name: str, last_name: str, i
     try:
         session.add(match)
         session.commit()
-        logging.info(f"User added (id={match.id}, username={match.username}, telegram_id={match.telegram_id})")
+        _logger.info(f"User added (id={match.id}, username={match.username}, telegram_id={match.telegram_id})")
     except Exception as e:
         print(f"ERROR failed to add user (username={username}, telegram_id={telegram_id}): {e}")
 
@@ -62,7 +64,6 @@ def get_user_by_telegram_id(telegram_id: int, session: Session) -> Optional[User
 
 def get_users(session: Session) -> List[User]:
     return session.query(User).all()
-
 
 # def update_user(user_id: Integer, props: Dict, session: Session):
 #     skin = get_user(user_id, session)

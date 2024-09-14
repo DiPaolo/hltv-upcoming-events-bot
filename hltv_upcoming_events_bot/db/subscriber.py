@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import RetCode
-from hltv_upcoming_events_bot.db.common import Base
 from hltv_upcoming_events_bot.db.chat import add_chat_from_domain_object, get_chat_by_telegram_id, Chat
+from hltv_upcoming_events_bot.db.common import Base
+
+_logger = logging.getLogger('hltv_upcoming_events_bot.db')
 
 
 class Subscriber(Base):
@@ -29,7 +31,7 @@ def add_subscriber_from_domain_object(chat: domain.Chat, session: Session) -> Op
         db_chat = add_chat_from_domain_object(chat, session)
         session.flush()
         if db_chat is None:
-            logging.error(
+            _logger.error(
                 f'failed to subscribe user/chat (telegram_id={chat.telegram_id}, title={chat.title}): '
                 f'failed to create user object in DB')
             return None
@@ -44,7 +46,7 @@ def add_subscriber_from_domain_object(chat: domain.Chat, session: Session) -> Op
 def delete_subscriber_by_id(subscriber_id: Integer, session: Session) -> RetCode:
     db_subs = get_subscriber(subscriber_id, session)
     if db_subs is None:
-        logging.error(
+        _logger.error(
             f'failed to unsubscribe user/chat (id={subscriber_id}): no such subscriber in DB')
         return RetCode.NOT_EXIST
 
@@ -53,7 +55,7 @@ def delete_subscriber_by_id(subscriber_id: Integer, session: Session) -> RetCode
         session.commit()
         return RetCode.OK
     except Exception as ex:
-        logging.error(f'failed to delete subscriber by ID (id={subscriber_id}): {ex}')
+        _logger.error(f'failed to delete subscriber by ID (id={subscriber_id}): {ex}')
         return RetCode.ERROR
 
 

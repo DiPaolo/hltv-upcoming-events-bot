@@ -8,13 +8,15 @@ from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.domain.streamer import Streamer
 from pywebparser.pywebparser import Parser
 
+_logger = logging.getLogger('hltv_upcoming_events_bot.service.hltv_parser')
+
 
 def _parse_match_page(url: str, parser: Parser = None) -> Optional[Tuple[domain.Match, List[domain.Streamer]]]:
     parser.goto(url)
 
     tournament_name_elem = parser.find_element("//div[@class='timeAndEvent']/div[contains(@class, 'event')]/a")
     if not tournament_name_elem:
-        logging.error(f"failed to parse match page (url={url}) for getting tournament name: "
+        _logger.error(f"failed to parse match page (url={url}) for getting tournament name: "
                       f"no such element (tournament name)")
         return None
 
@@ -34,7 +36,7 @@ def _parse_match_page(url: str, parser: Parser = None) -> Optional[Tuple[domain.
     for stream_elem in streams_elems:
         stream_name_elem = stream_elem.find_element("./div[contains(@class, 'stream-box-embed')]")
         if not stream_name_elem:
-            logging.warning(f"failed to parse match page (url={url}) for getting translations")
+            _logger.warning(f"failed to parse match page (url={url}) for getting translations")
             continue
 
         streamer_name = stream_name_elem.text
@@ -63,14 +65,14 @@ def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.T
 
     name_elem = parser.find_element("//h1[@class='event-hub-title']")
     if not name_elem:
-        logging.error(f"failed to parse tournament page: no such element (name)")
+        _logger.error(f"failed to parse tournament page: no such element (name)")
         return None
 
     name = name_elem.text
 
     hltv_id = re.search(r'hltv.org\/events\/(\d+)\/', url)
     if not hltv_id or len(hltv_id.groups()) != 1:
-        logging.error(f"failed to parse tournament page: failed to parse URL for getting HLTV ID")
+        _logger.error(f"failed to parse tournament page: failed to parse URL for getting HLTV ID")
         return None
 
     return domain.Tournament(name, url, int(hltv_id.groups()[0]))
@@ -94,7 +96,7 @@ def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]
         if not team1_elem or not team2_elem:
             placeholder_elem = match_elem.find_element("./div[@class='placeholderrow']")
             if not placeholder_elem:
-                logging.error(
+                _logger.error(
                     f"failed to parse nor team1 or team2 row elements or placeholder row element (url={parser.url}): no such element(s)")
             continue
 
@@ -138,7 +140,7 @@ def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]
             for streamer in parsed_streamers:
                 out.append(domain.Translation(match=match, streamer=streamer))
         except Exception as ex:
-            logging.error(f'Unexpected error during filling up upcoming translation list: {ex}')
+            _logger.error(f'Unexpected error during filling up upcoming translation list: {ex}')
             continue
 
     return out
