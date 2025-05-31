@@ -173,6 +173,23 @@ def upgrade():
     alembic.command.upgrade(alembic_config, 'head')
 
 
+@db.command()
+@click.option('-m', default=None, help='Message')
+def newver(m: str):
+    import alembic.config
+    import alembic.command
+
+    if not m:
+        click.echo('No message provided', err=True)
+        return
+
+    cur_file_dir = os.path.dirname(os.path.realpath(__file__))
+    project_root_dir = os.path.abspath(os.path.join(cur_file_dir, '..', '..'))
+    alembic_config = alembic.config.Config(os.path.join(project_root_dir, 'alembic.ini'))
+    alembic_config.set_main_option('script_location', os.path.join(project_root_dir, 'alembic'))
+    alembic.command.revision(alembic_config, autogenerate=True, message=m)
+
+
 cli.add_command(db)
 
 
