@@ -1,7 +1,8 @@
+import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot import domain
@@ -17,6 +18,7 @@ class Subscriber(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("user.id"))
     chat_id = Column(Integer, ForeignKey("chat.id"))
+    subscribed_at = Column(DateTime)
 
     def __repr__(self):
         return f"Subscriber(id={self.id!r})"
@@ -36,7 +38,7 @@ def add_subscriber_from_domain_object(chat: domain.Chat, session: Session) -> Op
                 f'failed to create user object in DB')
             return None
 
-    subscriber = Subscriber(chat_id=db_chat.id)
+    subscriber = Subscriber(chat_id=db_chat.id, subscribed_at=datetime.datetime.utcnow())
     session.add(subscriber)
     session.commit()
 
