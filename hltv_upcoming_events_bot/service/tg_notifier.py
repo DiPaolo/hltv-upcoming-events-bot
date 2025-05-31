@@ -104,6 +104,6 @@ def _notify_subscribers_about_news(for_last_n_hours: int, news_count: int):
 
         try:
             _SEND_MESSAGE_FUNC(subs.telegram_id, msg)
-            db_service.mark_news_items_as_sent(news_items, [subs.telegram_id])
+            db_service.mark_news_items_as_sent(news_items, [subs.telegram_id], datetime.datetime.utcnow())
         except Exception as ex:
             _logger.error(f'Exception while notifying subscriber about news (telegram_id={subs.telegram_id}): {ex}')

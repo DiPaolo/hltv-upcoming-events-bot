@@ -1,7 +1,8 @@
+import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, and_
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, and_, DateTime
 from sqlalchemy.orm import Session
 
 from hltv_upcoming_events_bot.db.common import Base
@@ -17,6 +18,7 @@ class NewsItemSent(Base):
     id = Column(Integer, primary_key=True)
     news_item_id = Column(Integer, ForeignKey('news_item.id'))
     chat_id = Column(Integer, ForeignKey('chat.id'))
+    sent_time_utc = Column(DateTime)
 
     def __repr__(self):
         return f"NewsItemSent(id={self.id!r}, news_item_id={self.news_item_id}, chat_id={self.chat_id!r})"
@@ -27,8 +29,9 @@ class NewsItemSent(Base):
     #                            comment_avg_hour=self.comment_avg_hour)
 
 
-def add_news_item_sent(news_item_id: Integer, chat_id: Integer, session: Session) -> Optional[Integer]:
-    news_item_sent = NewsItemSent(news_item_id=news_item_id, chat_id=chat_id)
+def add_news_item_sent(news_item_id: Integer, chat_id: Integer, sent_time_utc: datetime.datetime, session: Session) -> \
+Optional[Integer]:
+    news_item_sent = NewsItemSent(news_item_id=news_item_id, chat_id=chat_id, sent_time_utc=sent_time_utc)
 
     try:
         session.add(news_item_sent)

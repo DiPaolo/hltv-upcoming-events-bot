@@ -220,7 +220,8 @@ def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.dat
     return out
 
 
-def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int], db_engine=None):
+def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_telegram_id_list: List[int],
+                            sent_time_utc: datetime.datetime, db_engine=None):
     session_maker = sessionmaker(db_engine if db_engine else get_engine())
 
     with session_maker() as session:
@@ -240,4 +241,4 @@ def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_teleg
 
                 # add if not added
                 if len(db.get_news_item_sent_by_news_item_id_and_chat_id(news_item.id, chat.id, session)) == 0:
-                    db.add_news_item_sent(news_item.id, chat.id, session)
+                    db.add_news_item_sent(news_item.id, chat.id, sent_time_utc, session)
