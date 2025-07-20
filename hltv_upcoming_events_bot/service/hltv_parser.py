@@ -65,8 +65,11 @@ def _parse_tournament_page(url: str, parser: Parser = None) -> Optional[domain.T
 
     name_elem = parser.find_element("//h1[@class='event-hub-title']")
     if not name_elem:
-        _logger.error(f"failed to parse tournament page: no such element (name)")
-        return None
+        # try to parse as featured playoff match name
+        name_elem = parser.find_element("//div[contains(@class, 'featured-playoff-match-name')]")
+        if not name_elem:
+            _logger.error(f"failed to parse tournament page: no such element (name)")
+            return None
 
     name = name_elem.text
 
