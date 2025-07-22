@@ -18,7 +18,7 @@ _logger = logging.getLogger('hltv_upcoming_events_bot.bot')
 
 
 def start_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     send_message(engine.effective_chat.id, _get_help_text())
 
 
@@ -65,8 +65,11 @@ def unsubscribe_command(engine: Update, context: CallbackContext) -> None:
 
 
 def set_timezone_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
+    _set_timezone_internal_command(engine, context)
 
+
+def _set_timezone_internal_command(engine: Update, context: CallbackContext) -> None:
     timezone_text = ' '.join(context.args)
 
     timezone_offset = timezone_service.parse_timezone_offset_str(timezone_text)
@@ -89,16 +92,24 @@ def set_timezone_command(engine: Update, context: CallbackContext) -> None:
 
 
 def get_timezone_command(engine: Update, context: CallbackContext) -> None:
-    send_message(timezone_service.get_user_timezone(engine.effective_chat.id))
+    log_command(engine, _logger)
+
+    if len(context.args) == 0:
+        # get timezone
+        user_timezone = timezone_service.get_user_timezone(engine.effective_chat.id)
+        text = str(user_timezone.tzname(None)) if user_timezone else 'не удалось получить таймзону :('
+        send_message(engine.effective_chat.id, text)
+    else:
+        _set_timezone_internal_command(engine, context)
 
 
 def help_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     send_message(engine.effective_chat.id, _get_help_text())
 
 
 def version_command(engine: Update, context: CallbackContext) -> None:
-    log_command(engine)
+    log_command(engine, _logger)
     send_message(engine.effective_chat.id, hltv_upcoming_events_bot.__version__)
 
 

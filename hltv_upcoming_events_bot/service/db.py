@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session, sessionmaker
@@ -9,6 +9,7 @@ from hltv_upcoming_events_bot import db
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import RetCode
 from hltv_upcoming_events_bot.db.common import get_engine
+from hltv_upcoming_events_bot.db.user_timezone import UserTimezone
 
 _logger = logging.getLogger('hltv_upcoming_events_bot.service.db')
 
@@ -242,3 +243,23 @@ def mark_news_items_as_sent(news_items_domain: List[domain.NewsItem], sent_teleg
                 # add if not added
                 if len(db.get_news_item_sent_by_news_item_id_and_chat_id(news_item.id, chat.id, session)) == 0:
                     db.add_news_item_sent(news_item.id, chat.id, sent_time_utc, session)
+
+
+#
+# timezones
+#
+
+def add_user_timezone(tg_id: int, utc_offset_minutes: int, db_engine=None) -> Optional[UserTimezone]:
+    session_maker = sessionmaker(db_engine if db_engine else get_engine())
+    with session_maker() as session:
+        return db.add_user_timezone(tg_id, utc_offset_minutes, session)
+
+
+def get_user_timezone(tg_id: int, db_engine=None) -> Optional[datetime.timezone]:
+    session_maker = sessionmaker(db_engine if db_engine else get_engine())
+    with session_maker() as session:
+        user_timezone = db.get_user_timezone(tg_id, session)
+        if user_timezone is None:
+            return None
+
+        return datetime.timezone(datetime.timedelta(minutes=user_timezone.utc_offset_minutes))

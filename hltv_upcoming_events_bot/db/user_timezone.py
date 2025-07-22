@@ -1,19 +1,20 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import Session
 
-from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db.common import Base
-from hltv_upcoming_events_bot.db.user import add_user_from_domain_object, get_user_by_telegram_id
+from hltv_upcoming_events_bot.db.user import get_user_by_telegram_id, User
 
 
 class UserTimezone(Base):
     __tablename__ = "user_timezone"
     id = Column(Integer, primary_key=True)
-    utc_offset_minutes = Column(Integer)
     user_id = Column(Integer, ForeignKey("user.id"))
+    utc_offset_minutes = Column(Integer)
 
     def __repr__(self):
         return f"UserTimezone(id={self.id!r})"
@@ -48,22 +49,8 @@ def add_user_timezone(tg_id: int, utc_offset_minutes: int, session: Session = No
     return user_timezone
 
 
-def delete_subscriber_by_id(subscriber_id: Integer, session: Session):
-    db_subs = get_subscriber(subscriber_id, session)
-    if db_subs is None:
-        logging.error(
-            f'Failed to unsubscribe user (id={subscriber_id}): no such subscriber in DB')
-        return
-
-    session.delete(db_subs)
-    session.commit()
-
-
-def get_user_timezone(tg_id: int, session: Session) -> List[UserTimezone]:
-    return session.query(UserTimezone)\
-        .filter(UserTimezone.user ==)\
+def get_user_timezone(tg_id: int, session: Session) -> Optional[UserTimezone]:
+    return session.query(UserTimezone) \
+        .join(User) \
+        .filter(User.telegram_id == tg_id) \
         .first()
-
-
-def get_subscriber(subscriber_id: Integer, session: Session) -> Optional[Subscriber]:
-    return session.get(Subscriber, subscriber_id)
