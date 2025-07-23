@@ -9,6 +9,7 @@ from hltv_upcoming_events_bot import db
 from hltv_upcoming_events_bot import domain
 from hltv_upcoming_events_bot.db import RetCode
 from hltv_upcoming_events_bot.db.common import get_engine
+from hltv_upcoming_events_bot.domain import GameType
 
 _logger = logging.getLogger('hltv_upcoming_events_bot.service.db')
 
@@ -199,23 +200,28 @@ def _update_news_item_with_session(news_item_domain: domain.NewsItem, session: S
     return RetCode.OK
 
 
-def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None,
-                             db_engine=None) -> \
-        List[domain.NewsItem]:
+def get_recent_news_for_chat(game_type: GameType, chat_telegram_id: int, since_time_utc: datetime.datetime,
+                             max_count: int = None, db_engine=None) -> List[domain.NewsItem]:
     out = list()
 
     session_maker = sessionmaker(db_engine if db_engine else get_engine())
-
     with session_maker() as session:
-        chat = db.get_chat_by_telegram_id(chat_telegram_id, session)
-        if chat is None:
-            _logger.error(f'failed to get recent news items for chat (telegram_id={chat_telegram_id}')
+        game_type_db = db.get_game_type_by_name(str(game_type), session)
+        if game_type_db is None:
+            _logger.error(f'failed to get recent news items for chat (game_type={game_type}, '
+                          f'telegram_id={chat_telegram_id}')
             return out
 
-        news_items = db.get_recent_news_items_for_chat(chat.id, since_time_utc,
+        chat = db.get_chat_by_telegram_id(chat_telegram_id, session)
+        if chat is None:
+            _logger.error(f'failed to get recent news items for chat (game_type={game_type}, '
+                          f'telegram_id={chat_telegram_id}')
+            return out
+
+        news_items = db.get_recent_news_items_for_chat(game_type_db.id, chat.id, since_time_utc,
                                                        max_count if max_count is not None else 20, session)
         for news_item in news_items:
-            out.append(news_item.to_domain_object())
+            out.append(news_item.to_domain_object(session))
 
     return out
 

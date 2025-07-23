@@ -12,6 +12,7 @@ import hltv_upcoming_events_bot.service.news as news_service
 import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.bot.utils import log_command
+from hltv_upcoming_events_bot.domain.game_type import GameType
 
 _logger = logging.getLogger('hltv_upcoming_events_bot.bot')
 
@@ -34,11 +35,11 @@ def get_recent_news_command(engine: Update, context: CallbackContext) -> None:
     tg_id = engine.effective_chat.id
 
     recent_news = news_service.get_recent_news_for_chat(
-        tg_id, datetime.datetime.utcnow() - datetime.timedelta(hours=24), 3)
+        config.GAME_TYPE, tg_id, datetime.datetime.utcnow() - datetime.timedelta(hours=24), 3)
     recent_news_str = news_service.get_recent_news_str(recent_news)
-    db_service.mark_news_items_as_sent(recent_news, [tg_id])
 
     send_message(engine.effective_chat.id, recent_news_str)
+    db_service.mark_news_items_as_sent(recent_news, [tg_id], datetime.datetime.utcnow())
 
 
 def subscribe_command(engine: Update, context: CallbackContext) -> None:
@@ -136,13 +137,22 @@ def start(token: str) -> None:
 
 
 def _get_help_text() -> str:
+    if config.GAME_TYPE == GameType.CS2:
+        game_name = 'CS2'
+    elif config.GAME_TYPE == GameType.DOTA2:
+        game_name = 'Dota 2'
+    else:
+        _logger.error(f'Unhandled game type in _get_help_text (game_type={config.GAME_TYPE}')
+        game_name = ''
+
     return "Бот, который:\n" \
-           "  - уведомляет о сегодняшних интересных матчах в CS:GO\n" \
+           f"  - уведомляет о сегодняшних интересных матчах {game_name}\n" \
            "  - сразу дает ссылки на русскоязычную трансляцию\n" \
            "  - может выдать список ближайших матчей по требованию (/matches)\n" \
            "\n" \
            "Чтобы подписаться на уведомления раз в день, используй команду /subscribe\n" \
            "\n" \
-           "Выдает только игры со звездами HLTV, то есть наиболее интересные\n" \
-           "\n" \
-           "Контакт: @DiPaolo"
+        + (
+            "Выдает только игры со звездами HLTV, то есть наиболее интересные\n"
+            "\n" if config.GAME_TYPE == GameType.CS2 else '') + \
+        "Контакт: @DiPaolo"

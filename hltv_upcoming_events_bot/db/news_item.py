@@ -2,10 +2,11 @@ import datetime
 import logging
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_
+from sqlalchemy import Column, Integer, String, DateTime, Float, desc, and_, ForeignKey
 from sqlalchemy.orm import Session
 
-from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot import domain, db
+from hltv_upcoming_events_bot.db import GameType
 from hltv_upcoming_events_bot.db.common import Base
 from hltv_upcoming_events_bot.db.news_item_sent import NewsItemSent
 
@@ -15,6 +16,7 @@ _logger = logging.getLogger('hltv_upcoming_events_bot.db')
 class NewsItem(Base):
     __tablename__ = "news_item"
     id = Column(Integer, primary_key=True)
+    game_type_id = Column(Integer, ForeignKey('game_type.id'))
     date_time_utc = Column(DateTime(timezone=True), nullable=False)
     title = Column(String, nullable=False)
     short_desc = Column(String)
@@ -23,25 +25,35 @@ class NewsItem(Base):
     comment_avg_hour = Column(Float)
 
     def __repr__(self):
-        return f"News_item(id={self.id!r}, datetime={self.date_time_utc}, title={self.title!r}, url={self.url!r})"
+        return (f"News_item(id={self.id!r}, game_type_id={self.game_type_id}, datetime={self.date_time_utc}, "
+                f"title={self.title!r}, url={self.url!r})")
 
-    def to_domain_object(self):
-        return domain.NewsItem(date_time_utc=self.date_time_utc, title=self.title,
+    def to_domain_object(self, session: Session):
+        game_type = db.get_game_type(self.game_type_id, session)
+        if game_type is None:
+            game_type = domain.GameType.UNKNOWN
+
+        return domain.NewsItem(game_type=game_type, date_time_utc=self.date_time_utc, title=self.title,
                                short_desc=self.short_desc, url=self.url, comment_count=self.comment_count,
                                comment_avg_hour=self.comment_avg_hour)
 
 
 def add_news_item_from_domain_object(news_item: domain.NewsItem, session: Session) -> Optional[NewsItem]:
-    return add_news_item(news_item.date_time_utc, news_item.title, news_item.short_desc, news_item.url,
+    game_type = db.get_game_type_by_name(str(news_item.game_type), session)
+    if game_type is None:
+        return None
+
+    return add_news_item(game_type.id, news_item.date_time_utc, news_item.title, news_item.short_desc, news_item.url,
                          news_item.comment_count, news_item.comment_avg_hour, session)
 
 
-def add_news_item(date_time_utc: datetime.date, title: str, short_description: str, url: str, comment_count: int,
-                  comment_avg_hour: float, session: Session) -> Optional[NewsItem]:
+def add_news_item(game_type_id: Integer, date_time_utc: datetime.date, title: str, short_description: str, url: str,
+                  comment_count: int, comment_avg_hour: float, session: Session) -> Optional[NewsItem]:
     news_item = get_news_item_by_url(url, session)
     if news_item is None:
-        news_item = NewsItem(date_time_utc=date_time_utc, title=title, short_desc=short_description, url=url,
-                             comment_count=comment_count, comment_avg_hour=comment_avg_hour)
+        news_item = NewsItem(game_type_id=game_type_id, date_time_utc=date_time_utc, title=title,
+                             short_desc=short_description, url=url, comment_count=comment_count,
+                             comment_avg_hour=comment_avg_hour)
         try:
             session.add(news_item)
             # session.commit()
@@ -69,12 +81,13 @@ def get_recent_news_items(since_time_utc: datetime.datetime, max_count: int, ses
         .limit(max_count)
 
 
-def get_recent_news_items_for_chat(chat_id: Integer, since_time_utc: datetime.datetime, max_count: int,
-                                   session: Session) -> List[NewsItem]:
+def get_recent_news_items_for_chat(game_type_id: Integer, chat_id: Integer, since_time_utc: datetime.datetime,
+                                   max_count: int, session: Session) -> List[NewsItem]:
     rows = session.query(NewsItem) \
+        .join(GameType) \
         .outerjoin(NewsItemSent) \
         .order_by(desc(NewsItem.comment_avg_hour)) \
-        .filter(and_(NewsItem.date_time_utc >= since_time_utc)) \
+        .filter(and_(NewsItem.date_time_utc >= since_time_utc, GameType.id == game_type_id)) \
         .add_entity(NewsItemSent) \
         .all()
 

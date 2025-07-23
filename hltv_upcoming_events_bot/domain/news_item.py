@@ -1,9 +1,12 @@
 import datetime
 from dataclasses import dataclass
 
+from hltv_upcoming_events_bot.domain import GameType
+
 
 @dataclass
 class NewsItem(object):
+    game_type: GameType
     date_time_utc: datetime.datetime
     title: str
     short_desc: str

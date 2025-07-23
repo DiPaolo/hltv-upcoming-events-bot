@@ -5,6 +5,7 @@ from typing import Optional, List
 
 import hltv_upcoming_events_bot.service.db as db_service
 from hltv_upcoming_events_bot import domain
+from hltv_upcoming_events_bot.domain.game_type import GameType
 from hltv_upcoming_events_bot.service import cybersport_parser as parser
 
 _CACHED_MATCHES: Optional[List] = None
@@ -46,16 +47,16 @@ def get_recent_news_str(news_items: List[domain.NewsItem]) -> str:
     return 'никаких интересных новостей за последнее время :(' if not msg else msg
 
 
-def get_recent_news_for_chat(chat_telegram_id: int, since_time_utc: datetime.datetime, max_count: int = None) -> List[
-    domain.NewsItem]:
-    _logger.info(f'Get recent news for chat (chat_telegram_id={chat_telegram_id}, since_time_utc={since_time_utc}, '
-                 f'max={max_count})')
-    return db_service.get_recent_news_for_chat(chat_telegram_id, since_time_utc, max_count)
+def get_recent_news_for_chat(game_type: GameType, chat_telegram_id: int, since_time_utc: datetime.datetime,
+                             max_count: int = None) -> List[domain.NewsItem]:
+    _logger.info(f'Get recent news for chat (game_type={game_type}, chat_telegram_id={chat_telegram_id}, '
+                 f'since_time_utc={since_time_utc}, max={max_count})')
+    return db_service.get_recent_news_for_chat(game_type, chat_telegram_id, since_time_utc, max_count)
 
 
-def populate_news(to_date_time: datetime.datetime = None):
+def populate_news(game_type: GameType, to_date_time: datetime.datetime = None):
     _logger.info(f"Populate news until '{to_date_time}'")
-    _add_news_to_db(_parse_news(to_date_time))
+    _add_news_to_db(_parse_news(game_type, to_date_time))
 
 
 # def _setup_schedule():
@@ -68,13 +69,13 @@ def populate_news(to_date_time: datetime.datetime = None):
 #     populate_vacancies()
 
 
-def _parse_news(to_date_time: datetime.datetime = None) -> List[domain.NewsItem]:
+def _parse_news(game_type: GameType, to_date_time: datetime.datetime = None) -> List[domain.NewsItem]:
     # use try/except because if something goes wrong inside, the scheduler will
     # not emit the event next time
 
     news = list()
     try:
-        news = parser.parse_news_to_date(to_date_time)
+        news = parser.parse_news_to_date(game_type, to_date_time)
     except Exception as ex:
         _logger.error(f'failed to parse news: {ex}')
 

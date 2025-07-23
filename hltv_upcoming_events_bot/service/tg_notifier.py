@@ -94,7 +94,7 @@ def _notify_subscribers_about_news(for_last_n_hours: int, news_count: int):
     # not emit the event next time
     for subs in db_service.get_subscribers():
         try:
-            news_items = news_service.get_recent_news_for_chat(
+            news_items = news_service.get_recent_news_for_chat(config.GAME_TYPE,
                 subs.telegram_id, datetime.datetime.utcnow() - datetime.timedelta(hours=for_last_n_hours), news_count)
         except Exception as ex:
             _logger.error(f'Exception while getting recent news text: {ex}')

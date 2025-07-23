@@ -5,19 +5,29 @@ from typing import List, Optional
 
 import pywebparser.pywebparser as pwp
 from hltv_upcoming_events_bot.domain import NewsItem
+from hltv_upcoming_events_bot.domain.game_type import GameType
 
-_BASE_URL = 'https://www.cybersport.ru/tags/cs2?sort=-publishedAt'
+_BASE_URL = {
+    GameType.CS2: 'https://www.cybersport.ru/tags/cs2?sort=-publishedAt',
+    GameType.DOTA2: 'https://www.cybersport.ru/tags/dota-2?sort=-publishedAt'
+}
+
 _logger = logging.getLogger('hltv_upcoming_events_bot.service.cybersport_parser')
 
 
-def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
+def parse_news_to_date(game_type: GameType, date_time: datetime.datetime = None) -> List[NewsItem]:
     _logger.info(f'Parse news until {date_time}')
 
     if date_time is None:
         date_time = datetime.datetime(1970, 1, 1)
 
+    base_url = _BASE_URL[game_type] if game_type in _BASE_URL else None
+    if not base_url:
+        _logger.error(f'Failed to parse news: unknown game type (game={game_type})')
+        return list()
+
     parser = pwp.Parser(is_fast=True, delay_func=pwp.gaussian_low_delay, use_cloudflare_bypass=True)
-    parser.goto(_BASE_URL)
+    parser.goto(base_url)
 
     out = list()
 
@@ -35,6 +45,8 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
 
         if news_item.date_time_utc.astimezone(datetime.timezone.utc) < date_time.replace(tzinfo=datetime.timezone.utc):
             break
+
+        news_item.game_type = game_type
 
         out.append(news_item)
 
@@ -117,8 +129,8 @@ def _parse_article_elem(elem: pwp.Element, articles_parser: pwp.Parser) -> Optio
     if not url:
         _logger.warning("failed to parse article: failed to get short description")
 
-    return NewsItem(date_time_utc=date_time_utc, title=title, short_desc=short_desc, url=url,
-                    comment_count=comment_count, comment_avg_hour=comment_avg_hour)
+    return NewsItem(game_type=GameType.UNKNOWN, date_time_utc=date_time_utc, title=title, short_desc=short_desc,
+                    url=url, comment_count=comment_count, comment_avg_hour=comment_avg_hour)
 
 
 def _parse_news_item_page(url: str, parser: pwp.Parser) -> Optional[str]:

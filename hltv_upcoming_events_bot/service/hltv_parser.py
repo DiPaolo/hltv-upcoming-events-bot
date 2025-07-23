@@ -86,7 +86,7 @@ def get_upcoming_translations(parser: Parser = None) -> List[domain.Translation]
         parser = Parser(is_fast=True, use_cloudflare_bypass=True)
         # parser = Parser(is_fast=False, use_delay=True)
 
-    parser.goto(config.BASE_URL)
+    parser.goto(config.BASE_HLTV_URL)
 
     match_elem_list = parser.find_elements("//h1[contains(@class, 'todaysMatches')]/following-sibling::div/a")
 

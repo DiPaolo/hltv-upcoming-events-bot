@@ -14,21 +14,43 @@ import hltv_upcoming_events_bot.service.tg_notifier as tg_notifier_service
 from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.cli.schedule_thread import ScheduleThread
 from hltv_upcoming_events_bot.db import init_db
+from hltv_upcoming_events_bot.domain.game_type import GameType
 
 _logger = logging.getLogger('hltv_upcoming_events_bot.cli')
 
 
 @click.group()
+@click.option('--cs2/--no-cs2', default=None, type=bool, help='Use for CS2 bot')
+@click.option('--dota2/--no-dota2', default=None, type=bool, help='Use for Dota 2 bot')
 @click.option('--debug/--no-debug', default=None)
 @click.option('--pg-database', default=None, help='PostgreSQL database name')
 @click.option('--pg-host', default=None, help='PostgreSQL server host')
 @click.option('--pg-port', default=None, help='PostgreSQL server port')
 @click.option('--pg-username', default=None, help='PostgreSQL username')
 @click.option('--pg-password', default=None, help='PostgreSQL password')
-def cli(debug: bool, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
+def cli(cs2: bool, dota2: bool, debug: bool, pg_database: str, pg_host: str, pg_port: str, pg_username: str, pg_password: str):
     # apply env variables first;
     # command line parameters have higher priority, so it goes after
     _apply_env_variables_to_config()
+
+    if cs2 is None:
+        cs2 = False
+
+    if dota2 is None:
+        dota2 = False
+
+    # exactly one must be set
+    if not (cs2 ^ dota2):
+        basic_msg = f'--cs2 and --dota2 options are invalid (cs2={cs2}, dota2={dota2})'
+        _logger.error(basic_msg)
+        click.echo(f"ERROR: {basic_msg}. Please specify exactly one of them")
+        sys.exit(1)
+
+    if cs2:
+        config.GAME_TYPE = GameType.CS2
+
+    if dota2:
+        config.GAME_TYPE = GameType.DOTA2
 
     if debug is not None:
         config.DEBUG_PRINT = debug
@@ -77,6 +99,8 @@ def start(token: str):
     init_db(config.DB_FILENAME)
 
     try:
+        _logger.info(f'starting {config.GAME_TYPE} bot...')
+
         bot_impl.start(config.BOT_TOKEN)
     except KeyboardInterrupt:
         _logger.info('Keyboard interrupt. Successfully exiting application')
@@ -114,7 +138,7 @@ def once():
               help='Parse news until specified date')
 def news(to_date: datetime.datetime):
     init_db(config.DB_FILENAME)
-    news_service.populate_news(to_date if to_date is not None else None)
+    news_service.populate_news(config.GAME_TYPE, to_date if to_date is not None else None)
 
 
 @click.group()

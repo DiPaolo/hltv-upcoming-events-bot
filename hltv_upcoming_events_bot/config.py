@@ -1,8 +1,11 @@
 DEBUG = False
 BOT_TOKEN = None  # None means it will be taken from command line; it will be set if appropriate env variable is set
 
+# type of bot: CS:GO/HLTV or Dota2
+GAME_TYPE = 0  # see domain.GameType
+
 # parsing
-BASE_URL = 'https://www.hltv.org'  # no trailing slash
+BASE_HLTV_URL = 'https://www.hltv.org'  # no trailing slash
 
 # database
 DB_USE_SQLITE = False

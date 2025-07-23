@@ -1,4 +1,5 @@
 from .chat import Chat
+from .game_type import GameType
 from .language import Language
 from .match import Match
 from .match_stars import MatchStars
