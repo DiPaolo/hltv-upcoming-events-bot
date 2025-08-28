@@ -56,8 +56,18 @@ def get_upcoming_matches_str() -> str:
         else:
             matches[trans.match.url][1].append(trans.streamer)
 
+    def get_streaming_platform_sign(translation_url: str) -> str:
+        if translation_url.startswith('https://www.youtube.com/'):
+            return '[YouTube]'
+        elif translation_url.startswith('https://www.twitch.tv/'):
+            return '[Twitch]'
+        elif translation_url.startswith('https://kick.com/'):
+            return '[Kick.com]'
+        else:
+            return '🎥'
+
     for match, streamers in matches.values():
-        translations_str = ' '.join([f"<a href='{s.url}'>🎥 {s.name}</a>" for s in streamers])
+        translations_str = '\n'.join([f"{get_streaming_platform_sign(s.url)} <a href='{s.url}'>{s.name}</a>" for s in streamers])
         tournament_name_str = f"(<b>{match.tournament.name}</b>)" if len(tournaments_names) != 1 else ''
 
         # use UTC+7 timezone
@@ -65,7 +75,8 @@ def get_upcoming_matches_str() -> str:
 
         match_str = f"{user_time.hour:02}:{user_time.minute:02} " \
                     f"{'⭐' * match.stars.value}\t{match.team1.name} - {match.team2.name} " + \
-                    f"{tournament_name_str} {translations_str}"
+                    f"{tournament_name_str}\n" \
+                    f"{translations_str}"
         match_str_list.append(match_str)
 
     msg = ''
