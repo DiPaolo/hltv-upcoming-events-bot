@@ -4,6 +4,7 @@ import time
 from typing import List, Optional
 
 import pywebparser.pywebparser as pwp
+from hltv_upcoming_events_bot import config
 from hltv_upcoming_events_bot.domain import NewsItem
 
 _BASE_URL = 'https://www.cybersport.ru/tags/cs2?sort=-publishedAt'
@@ -16,7 +17,7 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
     if date_time is None:
         date_time = datetime.datetime(1970, 1, 1)
 
-    parser = pwp.Parser(is_fast=True, delay_func=pwp.gaussian_low_delay, use_cloudflare_bypass=True)
+    parser = pwp.Parser(is_fast=True, delay_func=pwp.gaussian_low_delay, use_cloudflare_bypass=True, debug=config.DEBUG)
     parser.goto(_BASE_URL)
 
     out = list()
@@ -26,7 +27,7 @@ def parse_news_to_date(date_time: datetime.datetime = None) -> List[NewsItem]:
         _logger.error('failed to parse news: no any news item found')
         return out
 
-    articles_parser = pwp.Parser(is_fast=True, delay_func=None, use_cloudflare_bypass=True)
+    articles_parser = pwp.Parser(is_fast=True, delay_func=None, use_cloudflare_bypass=True, debug=config.DEBUG)
 
     for article_elem in article_elems:
         news_item = _parse_article_elem(article_elem, articles_parser)
